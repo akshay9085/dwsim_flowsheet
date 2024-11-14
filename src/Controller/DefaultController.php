@@ -5,8 +5,21 @@
 
 namespace Drupal\dwsim_flowsheet\Controller;
 
+use Drupal\Core\Form\FormBase;
+use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Controller\ControllerBase;
-
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\Response;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Database\Database;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\File\FileSystemInterface;
+use Drupal\Service;
+use Drupal\user\Entity\User;
+use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Form\FormBuilderInterface;
+use Drupal\Core\Render\Markup;
 /**
  * Default controller for the dwsim_flowsheet module.
  */
@@ -22,15 +35,46 @@ class DefaultController extends ControllerBase {
     $query->orderBy('id', 'DESC');
     $pending_q = $query->execute();
     while ($pending_data = $pending_q->fetchObject()) {
-      // @FIXME
-// l() expects a Url object, created from a route name or external URI.
-// $pending_rows[$pending_data->id] = array(
-// 			date('d-m-Y', $pending_data->creation_date),
-// 			l($pending_data->name_title . ' ' . $pending_data->contributor_name, 'user/' . $pending_data->uid),
-// 			$pending_data->project_title,
-// 			l('Approve', 'flowsheeting-project/manage-proposal/approve/' . $pending_data->id) . ' | ' . l('Edit', 'flowsheeting-project/manage-proposal/edit/' . $pending_data->id)
-// 		);
 
+// $pending_rows[$pending_data->id] = array(
+//   date('d-m-Y', $pending_data->creation_date),
+  
+//   $pending_data->project_title,
+//   Link::fromTextAndUrl(
+//     'Approve',
+//     Url::fromRoute('dwsim_flowsheet.proposal_approval_form', ['id' => $pending_data->id])
+//   )->toString() . ' | ' . Link::fromTextAndUrl(
+//     'Edit',
+//     Url::fromRoute('dwsim_flowsheet.manage_proposal_edit', ['id' => $pending_data->id])
+//   )->toString()
+// );
+
+$approval_url = Link::fromTextAndUrl('Approve', Url::fromRoute('dwsim_flowsheet.proposal_approval_form',['id'=>$pending_data->id]))->toString();
+$edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$pending_data->id]))->toString();
+$mainLink = t('@linkApprove | @linkReject', array('@linkApprove' => $approval_url, '@linkReject' => $edit_url));
+$pending_rows[$pending_data->id] = [
+  date('d-m-Y', $pending_data->creation_date),
+  
+ // Create the link with the user's name as the link text.
+//  Link::fromTextAndUrl(
+//   $pending_data->name_title . ' ' . $pending_data->contributor_name,
+//   Url::fromRoute('entity.user.canonical', ['user' => $pending_data->uid])
+// )->toString(),
+ Link::fromTextAndUrl($pending_data->contributor_name, Url::fromRoute('entity.user.canonical', ['user' => $pending_data->uid])),
+
+
+  // Link::fromTextAndUrl($pending_data->name, 'user/' . $pending_data->uid),
+  $pending_data->project_title,
+  // $pending_data->department,
+  $mainLink 
+
+
+  
+  // Link::fromTextAndUrl('Approve', Url::fromRoute('lab_migration.manage_proposal_approve', ['id' => $pending_data->id]))
+  // ->toString() . ' | ' . 
+  // Link::fromTextAndUrl('Edit', Url::fromRoute('lab_migration.proposal_edit_form', ['id' => $pending_data->id]))->toString()
+  // Link::fromTextAndUrl('Approve', 'lab_migration_manage_proposal_approve' . $pending_data->id) . ' | ' . Link::fromTextAndUrl('Edit', 'lab-migration/manage-proposal/edit/' . $pending_data->id),
+];
     } //$pending_data = $pending_q->fetchObject()
 	/* check if there are any pending proposals */
     if (!$pending_rows) {
@@ -42,6 +86,12 @@ class DefaultController extends ControllerBase {
       'Student Name',
       'Title of the Flowsheet Project',
       'Action',
+    ];
+    $output =  [
+      '#type' => 'table',
+      '#header' => $pending_header,
+      '#rows' => $pending_rows,
+      //'#empty' => 'no rows found',
     ];
     //$output = theme_table($pending_header, $pending_rows);
     // @FIXME
@@ -103,8 +153,48 @@ class DefaultController extends ControllerBase {
       // 			$approval_status,
       // 			l('Status', 'flowsheeting-project/manage-proposal/status/' . $proposal_data->id) . ' | ' . l('Edit', 'flowsheeting-project/manage-proposal/edit/' . $proposal_data->id)
       // 		);
+    //   $proposal_rows[] = array(
+    //     date('d-m-Y', $proposal_data->creation_date),
+    //     Link::fromTextAndUrl(
+    //         $proposal_data->contributor_name,
+    //         Url::fromUserInput('/user/' . $proposal_data->uid)
+    //     )->toString(),
+    //     $proposal_data->project_title,
+    //     $actual_completion_date,
+    //     $approval_status,
+    //     Link::fromTextAndUrl(
+    //         'Status',
+    //         Url::fromUserInput('/flowsheeting-project/manage-proposal/status/' . $proposal_data->id)
+    //     )->toString() . ' | ' .
+    //     Link::fromTextAndUrl(
+    //         'Edit',
+    //         Url::fromUserInput('/flowsheeting-project/manage-proposal/edit/' . $proposal_data->id)
+    //     )->toString()
+    // );
+    // } //$proposal_data = $proposal_q->fetchObject()
 
-    } //$proposal_data = $proposal_q->fetchObject()
+    $status_url = Link::fromTextAndUrl('Status', Url::fromRoute('dwsim_flowsheet.proposal_status_form',['id'=>$proposal_data->id]))->toString();
+    $edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$proposal_data->id]))->toString();
+    $mainLink = t('@linkApprove | @linkReject', array('@linkApprove' => $status_url, '@linkReject' => $edit_url));
+    
+      $proposal_rows[] = array(
+          date('d-m-Y', $proposal_data->creation_date),
+          // $uid_url = Url::fromRoute('entity.user.canonical', ['user' => $proposal_data->uid]),
+          //  $link = Link::fromTextAndUrl($proposal_data->name, $uid_url)->toString(),
+          Link::fromTextAndUrl($proposal_data->contributor_name, Url::fromRoute('entity.user.canonical', ['user' => $proposal_data->uid])),
+      
+
+          // Link::fromTextAndUrl($pending_data->name, 'user/' . $pending_data->uid),
+          $proposal_data->project_title,
+          $actual_completion_date,
+          // $proposal_data->department,
+          $approval_status,
+          $mainLink 
+        
+          );
+        }
+
+
 	/* check if there are any pending proposals */
     if (!$proposal_rows) {
       \Drupal::messenger()->addStatus(t('There are no proposals.'));
@@ -118,6 +208,7 @@ class DefaultController extends ControllerBase {
       'Status',
       'Action',
     ];
+
     // @FIXME
     // theme() has been renamed to _theme() and should NEVER be called directly.
     // Calling _theme() directly can alter the expected output and potentially
@@ -130,31 +221,58 @@ class DefaultController extends ControllerBase {
     // 		'header' => $proposal_header,
     // 		'rows' => $proposal_rows
     // 	));
-
+ $output = [
+        '#type' => 'table',
+        '#header' => $proposal_header,
+        '#rows' => $proposal_rows,
+    ];
+  
     return $output;
+    
   }
 
   public function dwsim_flowsheet_approved_tab() {
     $page_content = "";
-    $result = \Drupal::database()->query("SELECT * from dwsim_flowsheet_proposal where id not in (select proposal_id from dwsim_flowsheet_submitted_abstracts) AND approval_status = 1 order by approval_date desc");
-    if ($result->rowCount() == 0) {
+    // $connection = \Drupal::database();         
+    // $query = $connection->query("SELECT * from dwsim_flowsheet_proposal where id not in (select proposal_id from dwsim_flowsheet_submitted_abstracts) AND approval_status = 1 order by approval_date desc");
+    $connection = \Drupal::database();
+
+    // Create a subquery to select proposal IDs from dwsim_flowsheet_submitted_abstracts.
+    $subquery = $connection->select('dwsim_flowsheet_submitted_abstracts', 'dfa')
+        ->fields('dfa', ['proposal_id']);
+    
+    // Main query to select records from dwsim_flowsheet_proposal that do not have corresponding entries in the subquery.
+    $query = $connection->select('dwsim_flowsheet_proposal', 'dfp')
+        ->fields('dfp')
+        ->condition('dfp.id', $subquery, 'NOT IN')
+        ->condition('dfp.approval_status', 1)
+        ->orderBy('dfp.approval_date', 'DESC');
+    
+    // Execute the query.
+    $result = $query->execute();
+    $records = $result->fetchAll();
+// $result = $query->fetchAll();
+//     $records = $result->fetchAll();
+
+    if (count($records) == 0) {
       $page_content .= "Approved Proposals under Flowsheeting Project<hr>";
     } //$result->rowCount() == 0
     else {
-      $page_content .= "Approved Proposals under Flowsheeting Project: " . $result->rowCount() . "<hr>";
+      $page_content .= "Approved Proposals under Flowsheeting Project: " . count($records) . "<hr>";
       $preference_rows = [];
       $i = 1;
-      while ($row = $result->fetchObject()) {
-        $approval_date = date("d-M-Y", $row->approval_date);
+      foreach ($records as $row) {
+        $approval_date = date("d-M-Y", strtotime($row->approval_date));
         $preference_rows[] = [
-          $i,
-          $row->project_title,
-          $row->contributor_name,
-          $row->university,
-          $approval_date,
+            $i,
+            $row->project_title,
+            $row->contributor_name,
+            $row->university,
+            $approval_date,
         ];
         $i++;
-      }
+    }
+          // var_dump($row);die;
       $preference_header = [
         'No',
         'Flowsheet Project',
@@ -163,34 +281,29 @@ class DefaultController extends ControllerBase {
         'Date of Approval',
       ];
       // @FIXME
-      // theme() has been renamed to _theme() and should NEVER be called directly.
-      // Calling _theme() directly can alter the expected output and potentially
-      // introduce security issues (see https://www.drupal.org/node/2195739). You
-      // should use renderable arrays instead.
-      // 
-      // 
-      // @see https://www.drupal.org/node/2195739
-      // $page_content .= theme('table', array(
-      // 			'header' => $preference_header,
-      // 			'rows' => $preference_rows
-      // 		));
-
+      $page_content = [
+        '#type' => 'table',
+        '#header' => $preference_header,
+        '#rows' => $preference_rows
+    ];
     }
+ 
     return $page_content;
+    
   }
 
   public function dwsim_flowsheet_uploaded_tab() {
     $page_content = "";
     $result = \Drupal::database()->query("SELECT dfp.project_title, dfp.contributor_name, dfp.id, dfp.university, dfa.abstract_upload_date, dfa.abstract_approval_status from dwsim_flowsheet_proposal as dfp JOIN dwsim_flowsheet_submitted_abstracts as dfa on dfa.proposal_id = dfp.id where dfp.id in (select proposal_id from dwsim_flowsheet_submitted_abstracts) AND approval_status = 1");
-
-    if ($result->rowCount() == 0) {
+    $records = $result->fetchAll();
+    if (count($records)== 0) {
       $page_content .= "Uploaded Proposals under Flowsheeting Project<hr>";
     }
     else {
-      $page_content .= "Uploaded Proposals under Flowsheeting Project: " . $result->rowCount() . "<hr>";
+      $page_content .= "Uploaded Proposals under Flowsheeting Project: " . count($records) . "<hr>";
       $preference_rows = [];
       $i = 1;
-      while ($row = $result->fetchObject()) {
+     foreach($records as $row){
         $abstract_upload_date = date("d-M-Y", $row->abstract_upload_date);
         $preference_rows[] = [
           $i,
@@ -208,18 +321,12 @@ class DefaultController extends ControllerBase {
         'University / Institute',
         'Date of file submission',
       ];
-      // @FIXME
-      // theme() has been renamed to _theme() and should NEVER be called directly.
-      // Calling _theme() directly can alter the expected output and potentially
-      // introduce security issues (see https://www.drupal.org/node/2195739). You
-      // should use renderable arrays instead.
-      // 
-      // 
-      // @see https://www.drupal.org/node/2195739
-      // $page_content .= theme('table', array(
-      // 			'header' => $preference_header,
-      // 			'rows' => $preference_rows
-      // 		));
+     
+      $page_content = [
+        '#type' => 'table',
+        '#header' => $preference_header,
+        '#rows' => $preference_rows
+    ];
 
     }
     return $page_content;
@@ -230,7 +337,7 @@ class DefaultController extends ControllerBase {
     $return_html = "";
     $proposal_data = dwsim_flowsheet_get_proposal();
     if (!$proposal_data) {
-      drupal_goto('');
+      // drupal_goto('');
       return;
     } //!$proposal_data
     //$return_html .= l('Upload abstract', 'flowsheeting-project/abstract-code/upload') . '<br />';

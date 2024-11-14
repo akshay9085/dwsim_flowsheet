@@ -10,6 +10,16 @@ namespace Drupal\dwsim_flowsheet\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Database\Database;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Mail\MailManager;
 
 class DwsimFlowsheetProposalForm extends FormBase {
 
@@ -23,28 +33,40 @@ class DwsimFlowsheetProposalForm extends FormBase {
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state, $no_js_use = NULL) {
     $user = \Drupal::currentUser();
     /************************ start approve book details ************************/
-    // if ($user->uid == 0) {
-    //   $msg = \Drupal::messenger()->addError(t('It is mandatory to ' . \Drupal\Core\Link::fromTextAndUrl('login', \Drupal\Core\Url::fromRoute('user.page')) . ' on this website to access the flowsheet proposal form. If you are new user please create a new account first.'));
-    //   //drupal_goto('dwsim-flowsheet-project');
-    //   drupal_goto('user/login', [
-    //     'query' => drupal_get_destination()
-    //     ]);
-    //   return $msg;
-    // } //$user->uid == 0
-    // $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
-    // $query->fields('dwsim_flowsheet_proposal');
-    // $query->condition('uid', $user->uid);
-    // $query->orderBy('id', 'DESC');
-    // $query->range(0, 1);
-    // $proposal_q = $query->execute();
-    // $proposal_data = $proposal_q->fetchObject();
-    // if ($proposal_data) {
-    //   if ($proposal_data->approval_status == 0 || $proposal_data->approval_status == 1) {
-    //     \Drupal::messenger()->addStatus(t('We have already received your proposal.'));
-    //     drupal_goto('');
-    //     return;
-    //   } //$proposal_data->approval_status == 0 || $proposal_data->approval_status == 1
-    // } //$proposal_data
+    if ($user->id() == 0) {
+      $msg = \Drupal::messenger()->addError(t('It is mandatory to @login_link on this website to access the flowsheet proposal form. If you are a new user, please create a new account first.', [
+        '@login_link' => Link::fromTextAndUrl(t('login'), Url::fromRoute('user.page'))->toString(),
+      ]));
+      // $msg = \Drupal::messenger()->addError(t('It is mandatory to ' . \Drupal\Core\Link::fromTextAndUrl('login', \Drupal\Core\Url::fromRoute('user.page')) . ' on this website to access the flowsheet proposal form. If you are new user please create a new account first.'));
+      //drupal_goto('dwsim-flowsheet-project');
+      $response = new RedirectResponse(Url::fromRoute('user.login', [], [
+        'query' => \Drupal::destination()->getAsArray(),
+      ])->toString());
+      
+      return $response;
+      // drupal_goto('user/login', [
+      //   'query' => drupal_get_destination()
+      //   ]);
+      return $msg;
+    } //$user->uid == 0
+    $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
+    $query->fields('dwsim_flowsheet_proposal');
+    $query->condition('uid', $user->id());
+    $query->orderBy('id', 'DESC');
+    $query->range(0, 1);
+    $proposal_q = $query->execute();
+    $proposal_data = $proposal_q->fetchObject();
+    if ($proposal_data) {
+      if ($proposal_data->approval_status == 0 || $proposal_data->approval_status == 1) {
+        \Drupal::messenger()->addStatus(t('We have already received your proposal.'));
+        $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
+  
+  // Send the redirect response
+  $response->send();
+        // drupal_goto('');
+        return;
+      } //$proposal_data->approval_status == 0 || $proposal_data->approval_status == 1
+    } //$proposal_data
     $imp = t('<span style="color: red;">*This is a mandatory field</span>');
     $form['#attributes'] = ['enctype' => "multipart/form-data"];
     $form['name_title'] = [
@@ -89,12 +111,20 @@ class DwsimFlowsheetProposalForm extends FormBase {
       '#required' => TRUE,
     ];
     $form['month_year_of_degree'] = [
-      '#type' => 'date_popup',
+      '#type' => 'date',
       '#title' => t('Month and year of award of degree'),
       '#date_label_position' => '',
       '#description' => '',
-      '#default_value' => '',
-      '#date_format' => 'M-Y',
+      '#default_value' => 'Nov/2024',
+      '#drupal_date_format' => 'mm/yyyy',
+      // '#datepicker_options' => array(
+      //   'changeMonth' => TRUE, // Allows users to change the month.
+      //   'changeYear' => TRUE, // Allows users to change the year.
+      //   'showButtonPanel' => TRUE, // Adds a button to close the date picker.
+      //   'dateFormat' => 'm-Y', // Forces the format to month-year.
+      //   'showMonthAfterYear' => TRUE, // Displays the month after the year.
+      //   'yearRange' => '1960:+22', // Specifies the year range.
+      // ),
       '#date_increment' => 0,
       '#date_year_range' => '1960: +22',
       '#required' => TRUE,
@@ -103,7 +133,7 @@ class DwsimFlowsheetProposalForm extends FormBase {
       '#type' => 'textfield',
       '#title' => t('Email'),
       '#size' => 30,
-      '#value' => $user->mail,
+      '#value' => $user ? $user->getEmail() : '',
       '#disabled' => TRUE,
     ];
     $form['university'] = [
@@ -128,6 +158,9 @@ class DwsimFlowsheetProposalForm extends FormBase {
     $form['project_guide_email_id'] = [
       '#type' => 'textfield',
       '#title' => t('Project guide email'),
+      '#attributes' => [
+        'placeholder' => t('Enter email of project guide')
+        ],
       '#size' => 30,
     ];
     $form['project_guide_university'] = [
@@ -201,6 +234,7 @@ class DwsimFlowsheetProposalForm extends FormBase {
     $form['all_state'] = [
       '#type' => 'select',
       '#title' => t('State'),
+     '#options' => \Drupal::service("dwsim_flowsheet_global")->_df_list_of_states(),
       // '#options' => _df_list_of_states(),
       '#validated' => TRUE,
       '#states' => [
@@ -215,6 +249,7 @@ class DwsimFlowsheetProposalForm extends FormBase {
     $form['city'] = [
       '#type' => 'select',
       '#title' => t('City'),
+      '#options' => \Drupal::service("dwsim_flowsheet_global")->_df_list_of_cities(),
       // '#options' => _df_list_of_cities(),
       '#validated' => TRUE,
       '#states' => [
@@ -258,12 +293,13 @@ class DwsimFlowsheetProposalForm extends FormBase {
         'placeholder' => 'Enter reference'
         ],
     ];
-    // $form['version'] = [
-    //   '#type' => 'select',
-    //   '#title' => t('Version'),
-    //   '#options' => _df_list_of_software_version(),
-    //   '#required' => TRUE,
-    // ];
+    $form['version'] = [
+      '#type' => 'select',
+      '#title' => t('Version'),
+    '#options' => \Drupal::service("dwsim_flowsheet_global")->_df_list_of_software_version(),
+      // '#options' => _df_list_of_software_version(),
+      '#required' => TRUE,
+    ];
     $form['older'] = [
       '#type' => 'textfield',
       '#title' => t('Other Version'),
@@ -295,15 +331,15 @@ Ex: Ethanol'),
 Ex: 64-17-5'),
       '#required' => TRUE,
     ];
-    // $form['dwsim_database_compound_name'] = [
-    //   '#type' => 'select',
-    //   '#title' => t('List of compounds from DWSIM Database used in process flowsheet'),
-    //   '#multiple' => TRUE,
-    //   '#size' => '20',
-    //   '#description' => t('Select  all the compounds used in flowsheet which are available in above DWSIM compound list [You can select multiple options by holding ctrl + left key of mouse]'),
-    //   '#options' => _df_list_of_dwsim_compound(),
-    //   '#required' => TRUE,
-    // ];
+    $form['dwsim_database_compound_name'] = [
+      '#type' => 'select',
+      '#title' => t('List of compounds from DWSIM Database used in process flowsheet'),
+      '#multiple' => TRUE,
+      '#size' => '20',
+      '#description' => t('Select  all the compounds used in flowsheet which are available in above DWSIM compound list [You can select multiple options by holding ctrl + left key of mouse]'),
+      '#options' => _df_list_of_dwsim_compound(),
+      '#required' => TRUE,
+    ];
     $form['ucompound'] = [
       '#type' => 'checkbox',
       '#title' => t('Is user defined compound used?'),
@@ -434,8 +470,12 @@ Ex: 64-17-5'),
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
     $query->condition('project_title', $project_title);
-    $query->condition(db_or()->condition('approval_status', 1)->condition('approval_status', 3));
-    $result = $query->execute()->rowCount();
+            $or_group = $query->orConditionGroup()
+                      ->condition('approval_status', 1)
+                      ->condition('approval_status', 3);
+    $query->condition($or_group);
+    // $query->condition(db_or()->condition('approval_status', 1)->condition('approval_status', 3));
+    $result = $query->countQuery()->execute()->fetchField();
     if ($result > 0) {
       $form_state->setErrorByName('project_title', t('Project title name already exists'));
       return;
@@ -611,8 +651,8 @@ Ex: 64-17-5'),
   }
 
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
-    $user = \Drupal::currentUser();
-    if (!$user->uid) {
+    $user = \Drupal\user\Entity\User::load(\Drupal::currentUser()->id());
+    if (!$user) {
       \Drupal::messenger()->addError('It is mandatory to login on this website to access the proposal form');
       return;
     } //!$user->uid
@@ -688,7 +728,7 @@ Ex: 64-17-5'),
     :reference
     )";
     $args = [
-      ":uid" => $user->uid,
+      ":uid" => $user->get('uid')->value,
       ":approver_uid" => 0,
       ":name_title" => $v['name_title'],
       ":contributor_name" => _df_sentence_case(trim($v['contributor_name'])),
@@ -718,7 +758,9 @@ Ex: 64-17-5'),
       ":reference" => $v['reference'],
     ];
     //var_dump($args);die;
-    $proposal_id = \Drupal::database()->query($result, $args, $result);
+    $connection = Database::getConnection();
+$proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->execute();
+    // $proposal_id = \Drupal::database()->query($result, $args, $result);
     if ($form_state->getValue(['ucompound']) == 1) {
       /* For adding compounds */
       $compounds = 0;
@@ -788,26 +830,30 @@ Ex: 64-17-5'),
       return;
     } //!$proposal_id
 	/* sending email */
-    $email_to = $user->mail;
-    $form = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
-    $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
-    $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
-    $params['dwsim_flowsheet_proposal_received']['proposal_id'] = $proposal_id;
-    $params['dwsim_flowsheet_proposal_received']['user_id'] = $user->uid;
-    $params['dwsim_flowsheet_proposal_received']['headers'] = [
-      'From' => $form,
-      'MIME-Version' => '1.0',
-      'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
-      'Content-Transfer-Encoding' => '8Bit',
-      'X-Mailer' => 'Drupal',
-      'Cc' => $cc,
-      'Bcc' => $bcc,
-    ];
-    if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, user_preferred_language($user), $params, $form, TRUE)) {
-      \Drupal::messenger()->addError('Error sending email message.');
-    }
+    // $email_to = $user->mail;
+    // $form = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
+    // $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
+    // $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
+    // $params['dwsim_flowsheet_proposal_received']['proposal_id'] = $proposal_id;
+    // $params['dwsim_flowsheet_proposal_received']['user_id'] = $user->uid;
+    // $params['dwsim_flowsheet_proposal_received']['headers'] = [
+    //   'From' => $form,
+    //   'MIME-Version' => '1.0',
+    //   'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
+    //   'Content-Transfer-Encoding' => '8Bit',
+    //   'X-Mailer' => 'Drupal',
+    //   'Cc' => $cc,
+    //   'Bcc' => $bcc,
+    // ];
+    // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, user_preferred_language($user), $params, $form, TRUE)) {
+    //   \Drupal::messenger()->addError('Error sending email message.');
+    // }
     \Drupal::messenger()->addStatus(t('We have received your DWSIM Flowsheeting proposal. We will get back to you soon.'));
-    drupal_goto('');
+    // drupal_goto('');
+    $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
+  
+    // Send the redirect response
+    $response->send();
   }
 
 }

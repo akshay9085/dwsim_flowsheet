@@ -5,6 +5,13 @@ dwsim_flowsheet.proposal_form:
     _form: \Drupal\dwsim_flowsheet\Form\DwsimFlowsheetProposalForm
   requirements:
     _permission: 'dwsim flowsheet create proposal'
+dwsim_flowsheet.proposal_pending_0:
+  path: /flowsheeting-project/manage-proposal
+  defaults:
+    _title: 'Manage Flowsheet Proposals'
+    _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_proposal_pending'
+  requirements:
+    _permission: 'dwsim flowsheet manage proposal'
 dwsim_flowsheet.proposal_pending:
   path: /flowsheeting-project/manage-proposal/pending
   defaults:
@@ -12,6 +19,7 @@ dwsim_flowsheet.proposal_pending:
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_proposal_pending'
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
+
 dwsim_flowsheet.proposal_all:
   path: /flowsheeting-project/manage-proposal/all
   defaults:
@@ -41,7 +49,7 @@ dwsim_flowsheet.completed_tab_form:
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
 dwsim_flowsheet.proposal_approval_form:
-  path: /flowsheeting-project/manage-proposal/approve
+  path: /flowsheeting-project/manage-proposal/approve/{id}
   defaults:
     _title: 'Approve Proposal'
     _form: \Drupal\dwsim_flowsheet\Form\DwsimFlowsheetProposalApprovalForm
@@ -76,7 +84,7 @@ dwsim_flowsheet.abstract_bulk_approval_form:
   requirements:
     _permission: 'dwsim flowsheet bulk manage abstract'
 dwsim_flowsheet.abstract:
-  path: /flowsheeting-project/abstract-code/flowsheet-project-list
+  path: /flowsheeting-project/abstract-code
   defaults:
     _title: 'Flowsheet project'
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_abstract'

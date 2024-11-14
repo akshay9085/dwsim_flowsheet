@@ -6,31 +6,6 @@ dwsim_flowsheet.proposal_pending:
   route_name: dwsim_flowsheet.proposal_pending
   title: 'Manage Flowsheet Proposals'
   description: 'Manage Flowsheet Proposals'
-dwsim_flowsheet.proposal_pending_0:
-  route_name: dwsim_flowsheet.proposal_pending
-  title: 'Pending Proposals'
-  weight: 1
-  description: 'Pending dwsim flowsheet Proposals Queue'
-dwsim_flowsheet.proposal_all:
-  route_name: dwsim_flowsheet.proposal_all
-  title: 'All Proposals'
-  weight: 2
-  description: 'All Proposals'
-dwsim_flowsheet.approved_tab:
-  route_name: dwsim_flowsheet.approved_tab
-  title: 'Approved Proposals'
-  weight: 3
-  description: 'Approved Proposals'
-dwsim_flowsheet.uploaded_tab:
-  route_name: dwsim_flowsheet.uploaded_tab
-  title: 'Uploaded Proposals'
-  weight: 4
-  description: 'Uploaded Proposals'
-dwsim_flowsheet.completed_tab_form:
-  route_name: dwsim_flowsheet.completed_tab_form
-  title: 'Completed Proposals'
-  weight: 5
-  description: 'Completed Proposals'
 dwsim_flowsheet.proposal_approval_form:
   route_name: dwsim_flowsheet.proposal_approval_form
   title: 'Approve Proposal'
@@ -43,29 +18,9 @@ dwsim_flowsheet.proposal_status_form:
   route_name: dwsim_flowsheet.proposal_status_form
   title: 'Proposal Status'
   description: 'Proposal Status'
-dwsim_flowsheet.abstract_approval_form:
-  route_name: dwsim_flowsheet.abstract_approval_form
-  title: 'Code Approval'
-  weight: 1
-  description: 'Code Approval'
-dwsim_flowsheet.abstract_bulk_approval_form:
-  route_name: dwsim_flowsheet.abstract_bulk_approval_form
-  title: 'Bulk Manage'
-  weight: 2
-  description: 'Bulk Mangage'
 dwsim_flowsheet.abstract:
   route_name: dwsim_flowsheet.abstract
   title: 'Abstract and Flowsheet Submission'
-  description: 'Abstract Submission'
-dwsim_flowsheet.abstract_0:
-  route_name: dwsim_flowsheet.abstract
-  title: 'Flowsheet project'
-  weight: 1
-  description: 'List Experiments'
-dwsim_flowsheet.upload_abstract_code_form:
-  route_name: dwsim_flowsheet.upload_abstract_code_form
-  title: 'Abstract and Flowsheet Submission'
-  weight: 2
   description: 'Abstract Submission'
 dwsim_flowsheet.download_solution_file:
   route_name: dwsim_flowsheet.download_solution_file

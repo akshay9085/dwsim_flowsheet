@@ -280,12 +280,15 @@ class DwsimFlowsheetProposalStatusForm extends FormBase {
         'Cc' => $cc,
         'Bcc' => $bcc,
       ];
-      if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_completed', $email_to, language_default(), $params, $from, TRUE)) {
-        \Drupal::messenger()->addError('Error sending email message.');
-      }
+      // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_completed', $email_to, language_default(), $params, $from, TRUE)) {
+      //   \Drupal::messenger()->addError('Error sending email message.');
+      // }
       \Drupal::messenger()->addStatus('Congratulations! DWSIM flowsheeting proposal has been marked as completed. User has been notified of the completion.');
     } //$form_state['values']['completed'] == 1
-    drupal_goto('flowsheeting-project/manage-proposal');
+    // drupal_goto('flowsheeting-project/manage-proposal');
+    $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+    // Send the redirect response
+    $response->send();
     return;
   }
 

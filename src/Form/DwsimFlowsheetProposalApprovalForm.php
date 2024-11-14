@@ -7,9 +7,20 @@
 
 namespace Drupal\dwsim_flowsheet\Form;
 
+
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Url;
+use Drupal\Core\Link;
+use Drupal\user\Entity\User;
+use Symfony\Component\HttpFoundation\Response;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Mail\MailManagerInterface;
+use Drupal\Core\DependencyInjection\ContainerInterface;
+use Drupal\Core\Session\AccountProxy;
 
 class DwsimFlowsheetProposalApprovalForm extends FormBase {
 
@@ -23,7 +34,10 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     /* get current proposal */
-    $proposal_id = (int) arg(3);
+    $route_match = \Drupal::routeMatch();
+
+    $proposal_id = (int) $route_match->getParameter('id');
+    // $proposal_id = (int) arg(3);
     //$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -35,13 +49,23 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
       } //$proposal_data = $proposal_q->fetchObject()
       else {
         \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-        drupal_goto('flowsheeting-project/manage-proposal');
+        $url = Url::fromRoute('dwsim_flowsheet.proposal_approval_form')->toString();
+        \Drupal::service('request_stack')->getCurrentRequest()->query->set('destination', $url); 
+        // drupal_goto('flowsheeting-project/manage-proposal');
+        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+        // Send the redirect response
+        $response->send();
         return;
       }
     } //$proposal_q
     else {
       \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-      drupal_goto('flowsheeting-project/manage-proposal');
+      $url = Url::fromRoute('dwsim_flowsheet.proposal_approval_form')->toString();
+      \Drupal::service('request_stack')->getCurrentRequest()->query->set('destination', $url);
+      // drupal_goto('flowsheeting-project/manage-proposal');
+      $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+      // Send the redirect response
+      $response->send();
       return;
     }
     if ($proposal_data->project_guide_name == "NULL" || $proposal_data->project_guide_name == "") {
@@ -58,17 +82,21 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
     }
     // @FIXME
     // l() expects a Url object, created from a route name or external URI.
-    // $form['contributor_name'] = array(
-    // 		'#type' => 'item',
-    // 		'#markup' => l($proposal_data->name_title . ' ' . $proposal_data->contributor_name, 'user/' . $proposal_data->uid),
-    // 		'#size' => 250,
-    // 		'#title' => t('Student name')
-    // 	);
+    $form['contributor_name'] = array(
+      	'#title' => 'Student name',
+    		'#type' => 'item',
+        '#markup' => Link::fromTextAndUrl(
+          $proposal_data->name_title . ' ' . $proposal_data->contributor_name,
+          Url::fromUserInput('/user/' . $proposal_data->uid)
+        )->toString(),
+    		'#size' => 250,
+    		'#title' => 'Student name'
+    	);
 
     $form['student_email_id'] = [
       '#title' => t('Student Email'),
       '#type' => 'item',
-      '#markup' => \Drupal::entityTypeManager()->getStorage('user')->load($proposal_data->uid)->mail,
+      // '#markup' => \Drupal\user\Entity\User::load($proposal_data->uid)->getEmail(),
       '#title' => t('Email'),
     ];
     $form['contributor_contact_no'] = [
@@ -158,7 +186,11 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
     // 		'header' => $headers,
     // 		'rows' => $rows
     // 	));
-
+    $page_content = [
+      '#type' => 'table',
+      '#header' => $headers,
+      '#rows' => $rows,
+  ];
     $form['process_development_compound_name'] = [
       '#type' => 'item',
       '#title' => t('Name of compound for which process development is carried out'),
@@ -248,7 +280,10 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     /* get current proposal */
-    $proposal_id = (int) arg(3);
+    $route_match = \Drupal::routeMatch();
+
+    $proposal_id = (int) $route_match->getParameter('id');
+    // $proposal_id = (int) arg(3);
     // $proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -260,13 +295,19 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
       } //$proposal_data = $proposal_q->fetchObject()
       else {
         \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-        drupal_goto('flowsheeting-project/manage-proposal');
+        // drupal_goto('flowsheeting-project/manage-proposal');
+        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+        // Send the redirect response
+        $response->send();
         return;
       }
     } //$proposal_q
     else {
       \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-      drupal_goto('flowsheeting-project/manage-proposal');
+      // drupal_goto('flowsheeting-project/manage-proposal');
+      $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+      // Send the redirect response
+      $response->send();
       return;
     }
     if ($form_state->getValue(['approval']) == 1) {
@@ -294,11 +335,14 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
         'Cc' => $cc,
         'Bcc' => $bcc,
       ];
-      if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_approved', $email_to, language_default(), $params, $from, TRUE)) {
-        \Drupal::messenger()->addError('Error sending email message.');
-      }
+      // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_approved', $email_to, language_default(), $params, $from, TRUE)) {
+      //   \Drupal::messenger()->addError('Error sending email message.');
+      // }
       \Drupal::messenger()->addStatus('DWSIM flowsheeting proposal No. ' . $proposal_id . ' approved. User has been notified of the approval.');
-      drupal_goto('flowsheeting-project/manage-proposal');
+      // drupal_goto('flowsheeting-project/manage-proposal');
+      $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+      // Send the redirect response
+      $response->send();
       return;
     } //$form_state['values']['approval'] == 1
     else {
@@ -328,11 +372,14 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
           'Cc' => $cc,
           'Bcc' => $bcc,
         ];
-        if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_disapproved', $email_to, language_default(), $params, $from, TRUE)) {
-          \Drupal::messenger()->addError('Error sending email message.');
-        }
+        // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_disapproved', $email_to, language_default(), $params, $from, TRUE)) {
+        //   \Drupal::messenger()->addError('Error sending email message.');
+        // }
         \Drupal::messenger()->addError('DWSIM flowsheeting proposal No. ' . $proposal_id . ' dis-approved. User has been notified of the dis-approval.');
-        drupal_goto('flowsheeting-project/manage-proposal');
+        // drupal_goto('flowsheeting-project/manage-proposal');
+        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+        // Send the redirect response
+        $response->send();
         return;
       }
     } //$form_state['values']['approval'] == 2
