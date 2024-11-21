@@ -10,6 +10,16 @@ namespace Drupal\dwsim_flowsheet\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Database\Database;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Mail\MailManager;
 
 class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
 
@@ -25,7 +35,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     $form['#attributes'] = ['enctype' => "multipart/form-data"];
     /* get current proposal */
     //$proposal_id = (int) arg(3);
-    $uid = $user->uid;
+    $uid = $user->id();
     //$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -38,13 +48,20 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       } //$proposal_data = $proposal_q->fetchObject()
       else {
         \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-        drupal_goto('flowsheeting-project/abstract-code');
+        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+    // Send the redirect response
+    $response->send();
+        // drupal_goto('flowsheeting-project/abstract-code');
         return;
       }
     } //$proposal_q
     else {
       \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-      drupal_goto('flowsheeting-project/abstract-code');
+    
+      $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+  // Send the redirect response
+  $response->send();
+      // drupal_goto('flowsheeting-project/abstract-code');
       return;
     }
     $query = \Drupal::database()->select('dwsim_flowsheet_submitted_abstracts');
@@ -54,8 +71,12 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     if ($abstracts_q) {
       if ($abstracts_q->is_submitted == 1) {
         \Drupal::messenger()->addError(t('Your abstract is under review, you can not edit exisiting abstract without reviewer permission.'));
-        drupal_goto('flowsheeting-project/abstract-code');
-        //return;
+        // drupal_goto('flowsheeting-project/abstract-code');
+        
+        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+    // Send the redirect response
+    $response->send();
+        return;
       } //$abstracts_q->is_submitted == 1
     } //$abstracts_q->is_submitted == 1
     $form['project_title'] = [
@@ -208,7 +229,8 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     $query_u->fields('dwsim_flowsheet_user_defined_compound');
     $query_u->condition('proposal_id', $proposal_data->id);
     $result_u = $query_u->execute();
-    $num_of_user_defined_compounds_results = $result_u->rowCount();
+    $result_u_fetch =  $result_u->fetchAll();
+    $num_of_user_defined_compounds_results = count($result_u_fetch);
     $form['user_defined_compound_fieldset'] = [
       '#type' => 'fieldset',
       '#tree' => TRUE,
@@ -260,7 +282,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       ////////////////////////////
       $existing_uploaded_udc_file = default_value_for_uploaded_files("UDC", $proposal_data->id);
       if (!$existing_uploaded_udc_file) {
-        $existing_uploaded_udc_file = new stdClass();
+        $existing_uploaded_udc_file = new \stdClass();
         $existing_uploaded_udc_file->filename = "No file uploaded";
       } //!$existing_uploaded_udc_file
       if (basename($existing_uploaded_udc_file->user_defined_compound_filepath) == 'NULL' || basename($existing_uploaded_udc_file->user_defined_compound_filepath) == '') {
@@ -334,7 +356,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       } //$form_state['num_user_defined_compounds'] > 1
       $existing_uploaded_udc_file = default_value_for_uploaded_files("UDC", $proposal_data->id);
       if (!$existing_uploaded_udc_file) {
-        $existing_uploaded_udc_file = new stdClass();
+        $existing_uploaded_udc_file = new \stdClass();
         $existing_uploaded_udc_file->filename = "No file uploaded";
       } //!$existing_uploaded_udc_file
       if (basename($existing_uploaded_udc_file->user_defined_compound_filepath) == 'NULL' || basename($existing_uploaded_udc_file->user_defined_compound_filepath) == '') {
@@ -358,7 +380,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     //////////////////////////////////////////////////////
     $existing_uploaded_A_file = default_value_for_uploaded_files("A", $proposal_data->id);
     if (!$existing_uploaded_A_file) {
-      $existing_uploaded_A_file = new stdClass();
+      $existing_uploaded_A_file = new \stdClass();
       $existing_uploaded_A_file->filename = "No file uploaded";
     } //!$existing_uploaded_A_file
     $form['upload_an_abstract'] = [
@@ -368,7 +390,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     ];
     $existing_uploaded_S_file = default_value_for_uploaded_files("S", $proposal_data->id);
     if (!$existing_uploaded_S_file) {
-      $existing_uploaded_S_file = new stdClass();
+      $existing_uploaded_S_file = new \stdClass();
       $existing_uploaded_S_file->filename = "No file uploaded";
     } //!$existing_uploaded_S_file
     $form['upload_flowsheet_developed_process'] = [
@@ -393,7 +415,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     // 		'#type' => 'item',
     // 		'#markup' => l(t('Cancel'), 'flowsheeting-project/manage-proposal')
     // 	);
-
+    // $response->send();
     return $form;
   }
 
@@ -515,6 +537,56 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     // drupal_static_reset('drupal_add_js') ;
   }
 
+  function default_value_for_selections($operation, $proposal_id) {
+    $query = Database::getConnection()->select('dwsim_flowsheet_submitted_abstracts', 'a');
+    $query->fields('a');
+    $query->condition('proposal_id', $proposal_id);
+    $abstracts_q = $query->execute()->fetchObject();
+
+    $selected_package_array = [];
+
+    if ($abstracts_q) {
+        if ($operation === "unit_operations_used_in_dwsim" && !empty($abstracts_q->unit_operations_used_in_dwsim)) {
+            $selected_package_array = array_map('trim', explode(',', $abstracts_q->unit_operations_used_in_dwsim));
+        } elseif ($operation === "thermodynamic_packages_used" && !empty($abstracts_q->thermodynamic_packages_used)) {
+            $selected_package_array = array_map('trim', explode(',', $abstracts_q->thermodynamic_packages_used));
+        } elseif ($operation === "logical_blocks_used" && !empty($abstracts_q->logical_blocks_used)) {
+            $selected_package_array = array_map('trim', explode(',', $abstracts_q->logical_blocks_used));
+        } elseif ($operation === "dwsim_database_compound_name") {
+            $query = Database::getConnection()->select('dwsim_flowsheet_proposal', 'p');
+            $query->fields('p');
+            $query->condition('id', $proposal_id);
+            $proposal_q = $query->execute()->fetchObject();
+
+            if (!empty($proposal_q->dwsim_database_compound_name)) {
+                $selected_package_array = array_map('trim', explode('| ', $proposal_q->dwsim_database_compound_name));
+            }
+        }
+    }
+
+    return $selected_package_array;
+}
+
+function default_value_for_uploaded_files($filetype, $proposal_id) {
+    $selected_files_array = null;
+
+    if (in_array($filetype, ['A', 'S'])) {
+        $query = Database::getConnection()->select('dwsim_flowsheet_submitted_abstracts_file', 'f');
+        $query->fields('f');
+        $query->condition('proposal_id', $proposal_id);
+        $query->condition('filetype', $filetype);
+        $selected_files_array = $query->execute()->fetchObject();
+    } elseif ($filetype === "UDC") {
+        $query = Database::getConnection()->select('dwsim_flowsheet_proposal', 'p');
+        $query->fields('p');
+        $query->condition('id', $proposal_id);
+        $selected_files_array = $query->execute()->fetchObject();
+    }
+
+    return $selected_files_array;
+}
+
+
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     $v = $form_state->getValues();
@@ -522,7 +594,10 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     $proposal_data = dwsim_flowsheet_get_proposal();
     $proposal_id = $proposal_data->id;
     if (!$proposal_data) {
-      drupal_goto('');
+      // drupal_goto('');
+      $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
+      // Send the redirect response
+      $response->send();
       return;
     } //!$proposal_data
     $proposal_id = $proposal_data->id;
@@ -833,8 +908,61 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     if (!drupal_mail('dwsim_flowsheet', 'abstract_uploaded', $email_to, language_default(), $params, $from, TRUE)) {
       \Drupal::messenger()->addError('Error sending email message.');
     }
-    drupal_goto('flowsheeting-project/abstract-code');
+    // drupal_goto('flowsheeting-project/abstract-code');
+    $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+    // Send the redirect response
+    $response->send();
   }
 
 }
+
+function default_value_for_selections($operation, $proposal_id) {
+  $query = Database::getConnection()->select('dwsim_flowsheet_submitted_abstracts', 'a');
+  $query->fields('a');
+  $query->condition('proposal_id', $proposal_id);
+  $abstracts_q = $query->execute()->fetchObject();
+
+  $selected_package_array = [];
+
+  if ($abstracts_q) {
+      if ($operation === "unit_operations_used_in_dwsim" && !empty($abstracts_q->unit_operations_used_in_dwsim)) {
+          $selected_package_array = array_map('trim', explode(',', $abstracts_q->unit_operations_used_in_dwsim));
+      } elseif ($operation === "thermodynamic_packages_used" && !empty($abstracts_q->thermodynamic_packages_used)) {
+          $selected_package_array = array_map('trim', explode(',', $abstracts_q->thermodynamic_packages_used));
+      } elseif ($operation === "logical_blocks_used" && !empty($abstracts_q->logical_blocks_used)) {
+          $selected_package_array = array_map('trim', explode(',', $abstracts_q->logical_blocks_used));
+      } elseif ($operation === "dwsim_database_compound_name") {
+          $query = Database::getConnection()->select('dwsim_flowsheet_proposal', 'p');
+          $query->fields('p');
+          $query->condition('id', $proposal_id);
+          $proposal_q = $query->execute()->fetchObject();
+
+          if (!empty($proposal_q->dwsim_database_compound_name)) {
+              $selected_package_array = array_map('trim', explode('| ', $proposal_q->dwsim_database_compound_name));
+          }
+      }
+  }
+
+  return $selected_package_array;
+}
+
+function default_value_for_uploaded_files($filetype, $proposal_id) {
+  $selected_files_array = null;
+
+  if (in_array($filetype, ['A', 'S'])) {
+      $query = Database::getConnection()->select('dwsim_flowsheet_submitted_abstracts_file', 'f');
+      $query->fields('f');
+      $query->condition('proposal_id', $proposal_id);
+      $query->condition('filetype', $filetype);
+      $selected_files_array = $query->execute()->fetchObject();
+  } elseif ($filetype === "UDC") {
+      $query = Database::getConnection()->select('dwsim_flowsheet_proposal', 'p');
+      $query->fields('p');
+      $query->condition('id', $proposal_id);
+      $selected_files_array = $query->execute()->fetchObject();
+  }
+
+  return $selected_files_array;
+}
+
 ?>

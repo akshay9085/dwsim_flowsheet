@@ -286,7 +286,7 @@ class DwsimFlowsheetProposalStatusForm extends FormBase {
       \Drupal::messenger()->addStatus('Congratulations! DWSIM flowsheeting proposal has been marked as completed. User has been notified of the completion.');
     } //$form_state['values']['completed'] == 1
     // drupal_goto('flowsheeting-project/manage-proposal');
-    $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
+    $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending')->toString());
     // Send the redirect response
     $response->send();
     return;

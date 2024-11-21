@@ -2,7 +2,7 @@ dwsim_flowsheet.proposal_form:
   route_name: dwsim_flowsheet.proposal_form
   title: 'Flowsheet Proposal Form'
   description: 'Flowsheet Proposal Form Proposal Form'
-dwsim_flowsheet.proposal_pending:
+dwsim_flowsheet.proposal_pending_0:
   route_name: dwsim_flowsheet.proposal_pending
   title: 'Manage Flowsheet Proposals'
   description: 'Manage Flowsheet Proposals'

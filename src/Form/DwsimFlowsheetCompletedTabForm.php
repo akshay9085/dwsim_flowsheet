@@ -10,6 +10,20 @@ namespace Drupal\dwsim_flowsheet\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Ajax\DataCommand;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Core\Routing\TrustedRedirectResponse;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Drupal\Core\Routing\RouteMatchInterface;
+use Drupal\Core\StringTranslation\StringTranslationTrait;
+use Drupal\Core\Database\Database;
+use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\Core\Mail\MailManager;
 
 class DwsimFlowsheetCompletedTabForm extends FormBase {
 
@@ -21,42 +35,83 @@ class DwsimFlowsheetCompletedTabForm extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
-    $options_first = _flowsheet_details_year_wise();
+    //  $flowsheet_output = $this->_flowsheet_details('2023');
+
+    // // You can render the result as part of the form
+    // $form['flowsheet_output'] = [
+    //     '#markup' => $flowsheet_output,
+    // ];
+    $options_first = $this->_flowsheet_details_year_wise();
     $selected = !$form_state->getValue(['howmany_select']) ? $form_state->getValue(['howmany_select']) : key($options_first);
     $form = [];
     $form['howmany_select'] = [
       '#title' => t('Sorting projects according to year:'),
       '#type' => 'select',
-      '#options' => _flowsheet_details_year_wise(),
+      '#options' => $this->_flowsheet_details_year_wise(),
       '#default_value' => $selected,
       '#ajax' => [
-        'callback' => 'ajax_example_autocheckboxes_callback'
+        'callback' => '::ajax_example_autocheckboxes_callback'
         ],
       '#suffix' => '<div id="ajax-selected-flowsheet"></div>',
     ];
+   
+    // var_dump( _flowsheet_details(2024));die;
     return $form;
   }
-  public function ajax_example_autocheckboxes_callback($form, $form_state)
-  {
-	  $commands = array();
-	  $flowsheet_project_default_value = $form_state['values']['howmany_select'];
-	  if ($flowsheet_project_default_value != 0)
-	  {
-		  $form['howmany_select']['#options'] =  array('Please select...' => 'Please select...');
-		  $commands[] = ajax_command_html('#ajax-selected-flowsheet', _flowsheet_details($flowsheet_project_default_value));
-		  $commands[] = ajax_command_replace('#ajax_selected_flowsheet_action', drupal_render($form['howmany_select']));
-		  
-	  } 
-	  else
-	  {
-		  $form['howmany_select']['#options'] =  array('Please select...' => 'Please select...');
-		  $commands[] = ajax_command_data('#ajax_selected_flowsheet', 'form_state_value_select', $form_state['values']['howmany_select']);
-	  }
-	  return array(
-		  '#type' => 'ajax',
-		  '#commands' => $commands
-	  );
+  
+  public function submitForm(array &$form, FormStateInterface $form_state) {
+    // Handle form submission logic here.
+    \Drupal::messenger()->addMessage($this->t('Form submitted successfully!'));
   }
+
+  
+  public function ajax_example_autocheckboxes_callback(array &$form, FormStateInterface $form_state) {
+    $response = new AjaxResponse();
+    $flowsheet_project_default_value = $form_state->getValue('howmany_select'); // Correct form state access
+  
+    if ($flowsheet_project_default_value != 0) {
+      // Update the form options dynamically
+      $form['howmany_select']['#options'] = ['Please select...' => 'Please select...'];
+      
+      // Example dynamic content
+      $dynamic_content = $this->_flowsheet_details($flowsheet_project_default_value);
+      
+      // Replace content dynamically
+      $response->addCommand(new HtmlCommand('#ajax-selected-flowsheet', $dynamic_content));
+      $response->addCommand(new ReplaceCommand('#ajax_selected_flowsheet_action', \Drupal::service('renderer')->render($form['howmany_select'])));
+    } 
+    else {
+      // Reset the form state value to "Please select..."
+      $form['howmany_select']['#options'] = ['Please select...' => 'Please select...'];
+      
+      // Use DataCommand for JavaScript context
+      $response->addCommand(new DataCommand('#ajax_selected_flowsheet', 'form_state_value_select', $form_state->getValue('howmany_select')));
+    }
+  
+    return $response;
+  }
+  
+  // public function ajax_example_autocheckboxes_callback(array &$form, FormStateInterface $form_state)
+  // {
+	//   $commands = array();
+	//   $flowsheet_project_default_value = $form_state['values']['howmany_select'];
+	//   if ($flowsheet_project_default_value != 0)
+	//   {
+	// 	  $form['howmany_select']['#options'] =  array('Please select...' => 'Please select...');
+	// 	  $commands[] = ajax_command_html('#ajax-selected-flowsheet', $this->_flowsheet_details($flowsheet_project_default_value));
+	// 	  $commands[] = ajax_command_replace('#ajax_selected_flowsheet_action', drupal_render($form['howmany_select']));
+		  
+	//   } 
+	//   else
+	//   {
+	// 	  $form['howmany_select']['#options'] =  array('Please select...' => 'Please select...');
+	// 	  $commands[] = ajax_command_data('#ajax_selected_flowsheet', 'form_state_value_select', $form_state['values']['howmany_select']);
+	//   }
+	//   return array(
+	// 	  '#type' => 'ajax',
+	// 	  '#commands' => $commands
+	//   );
+  // }
 
 
   public function _flowsheet_details_year_wise()
@@ -73,36 +128,39 @@ class DwsimFlowsheetCompletedTabForm extends FormBase {
   return $flowsheet_years;
 }
 
+
 public function _flowsheet_details($flowsheet_proposal_id) {
   $output = "";
-
+ 
+// $actual_completion_date = 'FROM_UNIXTIME(actual_completion_date, \'%Y\')';
   // Define the database connection.
   $connection = Database::getConnection();
 
   // Define and execute the query.
-  $query = $connection->select('dwsim_flowsheet_proposal', 'd')
-      ->fields('d')
-      ->condition('approval_status', 3)
-      ->condition('from_unixtime(actual_completion_date, \'%Y\')', $flowsheet_proposal_id, '=');
-  $result = $query->execute();
+  $result = \Drupal::database()->query('SELECT * FROM `dwsim_flowsheet_proposal` 
+WHERE `approval_status` = 3 
+  AND YEAR(FROM_UNIXTIME(`actual_completion_date`)) = :Year',array(':Year' => $flowsheet_proposal_id));
+
   $records = $result->fetchAll();
-  if ($result->rowCount() == 0) {
+  if (count($records) == 0) {
       $output .= "Work has been completed for the following flow sheets.";
   } 
   else {
-      $output .= "Work has been completed for the following flow sheets: " . $result->rowCount() . "<hr>";
+      $output .= "Work has been completed for the following flow sheets: " . count($records) . "<hr>";
       $preference_rows = [];
       $i = 1;
-      $url = Url::fromUri('internal:/flowsheeting-project/dwsim-flowsheet-run/' . $row->id);
-      $link = Link::fromTextAndUrl($row->project_title, $url)->toString();
-      foreach ($result as $row) {
+      // 
+     
+      foreach ($records as $row) {
+       
           $completion_date = date("d-M-Y", $row->actual_completion_date);
 
           // Create the link for each project.
        
-
+          $url = Url::fromUri('internal:/flowsheeting-project/dwsim-flowsheet-run/' . $row->id);
+          $link = Link::fromTextAndUrl($row->project_title, $url)->toString();
           // Add the row data.
-          $preference_rows[] = [
+          $preference_rows[$row->id] = [
               $i,
               Markup::create($link),
               $row->contributor_name,
@@ -121,18 +179,16 @@ public function _flowsheet_details($flowsheet_proposal_id) {
       ];
 
       // Render the table with the theme function.
-      $output .= [
-          '#theme' => 'table',
-          '#header' => $preference_header,
-          '#rows' => $preference_rows,
+      $output =  [
+        '#type' => 'table',
+        '#header' => $preference_header,
+        '#rows' => $preference_rows,
+        
       ];
   }
-  var_dump($output);die;
+ 
   return $output;
 }
-  public function submitForm(array &$form, FormStateInterface $form_state) {
-    // Handle form submission logic here.
-    \Drupal::messenger()->addMessage($this->t('Form submitted successfully!'));
-  }
+
 }
 ?>

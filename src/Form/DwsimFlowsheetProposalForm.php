@@ -851,7 +851,6 @@ $proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->ex
     \Drupal::messenger()->addStatus(t('We have received your DWSIM Flowsheeting proposal. We will get back to you soon.'));
     // drupal_goto('');
     $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
-  
     // Send the redirect response
     $response->send();
   }

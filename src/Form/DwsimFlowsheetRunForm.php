@@ -10,6 +10,7 @@ namespace Drupal\dwsim_flowsheet\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Database\Database;
 
 class DwsimFlowsheetRunForm extends FormBase {
 
@@ -21,9 +22,9 @@ class DwsimFlowsheetRunForm extends FormBase {
   }
 
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
-    $options_first = _list_of_flowsheet();
+    $options_first = $this->_list_of_flowsheet();
     $url_flowsheet_id = (int) arg(2);
-    $flowsheet_data = _flowsheet_information($url_flowsheet_id);
+    $flowsheet_data = $this->_flowsheet_information($url_flowsheet_id);
     if ($flowsheet_data == 'Not found') {
       $url_flowsheet_id = '';
     } //$flowsheet_data == 'Not found'
@@ -40,10 +41,10 @@ class DwsimFlowsheetRunForm extends FormBase {
     $form['flowsheet'] = [
       '#type' => 'select',
       '#title' => t('Title of the flowsheet'),
-      '#options' => _list_of_flowsheet(),
+      '#options' => $this->_list_of_flowsheet(),
       '#default_value' => $selected,
       '#ajax' => [
-        'callback' => 'dwsim_flowsheet_project_details_callback'
+        'callback' => '::dwsim_flowsheet_project_details_callback'
         ],
     ];
     if (!$url_flowsheet_id) {
@@ -60,7 +61,7 @@ class DwsimFlowsheetRunForm extends FormBase {
       $flowsheet_default_value = $url_flowsheet_id;
       $form['flowsheet_details'] = [
         '#type' => 'item',
-        '#markup' => '<div id="ajax_flowsheet_details">' . _flowsheet_details($flowsheet_default_value) . '</div>',
+        '#markup' => '<div id="ajax_flowsheet_details">' . $this->_flowsheet_details($flowsheet_default_value) . '</div>',
       ];
       // @FIXME
       // l() expects a Url object, created from a route name or external URI.
@@ -72,6 +73,49 @@ class DwsimFlowsheetRunForm extends FormBase {
     }
     return $form;
   }
+
+public function _list_of_flowsheet()
+{
+	$flowsheet_titles = array(
+		'0' => 'Please select...'
+	);
+	//$lab_titles_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE solution_display = 1 ORDER BY lab_title ASC");
+	$connection = \Drupal::database();
+$query = $connection->select('dwsim_flowsheet_proposal', 'd');
+$query->fields('d');
+$query->condition('d.approval_status', 3);
+$query->orderBy('d.project_title', 'ASC');
+	$flowsheet_titles_q = $query->execute();
+	while ($flowsheet_titles_data = $flowsheet_titles_q->fetchObject()) {
+		$flowsheet_titles[$flowsheet_titles_data->id] = $flowsheet_titles_data->project_title . ' (Proposed by ' . $flowsheet_titles_data->name_title . ' ' . $flowsheet_titles_data->contributor_name . ')';
+	} //$flowsheet_titles_data = $flowsheet_titles_q->fetchObject()
+	return $flowsheet_titles;
+}
+public function _flowsheet_information($proposal_id)
+{
+	$query = db_select('dwsim_flowsheet_proposal');
+	$query->fields('dwsim_flowsheet_proposal');
+	$query->condition('id', $proposal_id);
+	$query->condition('approval_status', 3);
+	$flowhsheet_q = $query->execute();
+	$flowsheet_data = $flowhsheet_q->fetchObject();
+	if ($flowsheet_data) {
+		return $flowsheet_data;
+	} //$flowsheet_data
+	else {
+		return 'Not found';
+	}
+}
+public function _flowsheet_details($flowsheet_default_value)
+{
+	$flowsheet_details = _flowsheet_information($flowsheet_default_value);
+	if ($flowsheet_default_value != 0) {
+		$form['flowsheet_details']['#markup'] = '<span style="color: rgb(128, 0, 0);"><strong>About the Flowsheet</strong></span></td><td style="width: 35%;"><br />' . '<ul>' . '<li><strong>Proposer Name:</strong> ' . $flowsheet_details->name_title . ' ' . $flowsheet_details->contributor_name . '</li>' . '<li><strong>Title of the Flowhseet:</strong> ' . l($flowsheet_details->project_title,'flowsheeting-project/full-download/project/' . $flowsheet_default_value,array('attributes' => array('title' => 'This is a zip file containing a pdf (abstract) and a dwxml/dwxmz file which is the DWSIM flow sheet which is to be viewed by right clicking on the file and opening with DWSIM.'))) . '</li>' . '<li><strong>Institution:</strong> ' . $flowsheet_details->university . '</li>' . '<li><strong>Version:</strong> ' . $flowsheet_details->version . '</li>' . '<li><strong>Reference:</strong> ' . $flowsheet_details->reference . '</li>' . '</ul>';
+		$details = $form['flowsheet_details']['#markup'];
+		return $details;
+	} //$flowsheet_default_value != 0
+}
+
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state){
   }
 }

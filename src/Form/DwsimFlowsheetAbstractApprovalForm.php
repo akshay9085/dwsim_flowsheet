@@ -189,6 +189,13 @@ class DwsimFlowsheetAbstractApprovalForm extends FormBase {
       '#type' => 'submit',
       '#value' => t('Submit'),
     ];
+    $form['cancel'] = [
+      '#type' => 'markup',
+      '#markup' => Link::fromTextAndUrl(
+          t('Cancel'),
+          Url::fromUri('internal:/lab_migration/code_approval')
+      )->toString(),
+  ];
     // @FIXME
     // l() expects a Url object, created from a route name or external URI.
     // $form['cancel'] = array(

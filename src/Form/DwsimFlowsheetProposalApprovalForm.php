@@ -194,7 +194,7 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
     $form['process_development_compound_name'] = [
       '#type' => 'item',
       '#title' => t('Name of compound for which process development is carried out'),
-      '#markup' => $prodata,
+      '#markup' => $page_content,
     ];
     /*
 	$form['process_development_compound_cas_number'] = array(

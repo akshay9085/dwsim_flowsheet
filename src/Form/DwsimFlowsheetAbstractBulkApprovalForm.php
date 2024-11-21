@@ -10,6 +10,10 @@ namespace Drupal\dwsim_flowsheet\Form;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
+use Drupal\Core\Ajax\ReplaceCommand;
+use Drupal\Core\Database\Database;
 
 class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
 
@@ -21,7 +25,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
   }
 
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
-    $options_first = _bulk_list_of_flowsheet_project();
+    $options_first = $this->_bulk_list_of_flowsheet_project();
     $selected = !$form_state->getValue(['flowsheet_project']) ? $form_state->getValue([
       'flowsheet_project'
       ]) : key($options_first);
@@ -29,7 +33,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
     $form['flowsheet_project'] = [
       '#type' => 'select',
       '#title' => t('Title of the flowsheeting project'),
-      '#options' => _bulk_list_of_flowsheet_project(),
+      '#options' => $this->_bulk_list_of_flowsheet_project(),
       '#default_value' => $selected,
       '#ajax' => [
         'callback' => 'ajax_bulk_flowsheet_abstract_details_callback'
@@ -39,7 +43,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
     $form['flowsheet_actions'] = [
       '#type' => 'select',
       '#title' => t('Please select action for Flowsheeting project'),
-      '#options' => _bulk_list_flowsheet_actions(),
+      '#options' => $this->_bulk_list_flowsheet_actions(),
       '#default_value' => 0,
       '#prefix' => '<div id="ajax_selected_flowsheet_action" style="color:red;">',
       '#suffix' => '</div>',
@@ -81,6 +85,28 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
     return $form;
   }
 
+  
+  function ajax_bulk_flowsheet_abstract_details_callback(array &$form, FormStateInterface $form_state) {
+    $response = new AjaxResponse();
+  
+    $flowsheet_project_default_value = $form_state->getValue('flowsheet_project');
+  
+    if ($flowsheet_project_default_value != 0) {
+      // Update the selected flowsheet details.
+      $details_html = _flowsheet_details($flowsheet_project_default_value);
+      $response->addCommand(new HtmlCommand('#ajax_selected_flowsheet', $details_html));
+  
+      // Update the flowsheet actions dropdown.
+      $form['flowsheet_actions']['#options'] = $this->_bulk_list_flowsheet_actions();
+      $flowsheet_actions_rendered = \Drupal::service('renderer')->render($form['flowsheet_actions']);
+      $response->addCommand(new ReplaceCommand('#ajax_selected_flowsheet_action', $flowsheet_actions_rendered));
+    } else {
+      // Clear the selected flowsheet details and flowsheet actions.
+      $response->addCommand(new HtmlCommand('#ajax_selected_flowsheet', ''));
+    }
+  
+    return $response;
+  }
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     $msg = '';
@@ -426,5 +452,115 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
     } //$form_state['clicked_button']['#value'] == 'Submit'
   }
 
+
+
+function _bulk_list_of_flowsheet_project() {
+  $project_titles = [
+    '0' => 'Please select...'
+  ];
+
+  $connection = Database::getConnection();
+  $query = $connection->select('dwsim_flowsheet_proposal', 'd');
+  $query->fields('d', ['id', 'project_title', 'contributor_name']);
+  $query->condition('approval_status', 1);
+  $query->orderBy('project_title', 'ASC');
+  $project_titles_q = $query->execute();
+
+  foreach ($project_titles_q as $project_titles_data) {
+    $project_titles[$project_titles_data->id] = $project_titles_data->project_title 
+      . ' (Proposed by ' . $project_titles_data->contributor_name . ')';
+  }
+
+  return $project_titles;
+}
+public function _bulk_list_flowsheet_actions()
+{
+	$flowsheet_actions = array(
+		0 => 'Please select...'
+	);
+	$flowsheet_actions[1] = 'Approve Entire Flowsheeting Project';
+	//$flowsheet_actions[2] = 'Pending Review Entire Flowsheeting Project';
+	$flowsheet_actions[3] = 'Dis-Approve Entire Flowsheeting Project (This will delete Flowsheeting Project)';
+	//$flowsheet_actions[4] = 'Delete Entire Flowsheeting Project Including Proposal';
+	return $flowsheet_actions;
+}
+public function _flowsheet_details($flowsheet_proposal_id) {
+  $return_html = "";
+
+  $connection = Database::getConnection();
+
+  // Fetch proposal details
+  $query_pro = $connection->select('dwsim_flowsheet_proposal', 'd');
+  $query_pro->fields('d', [
+    'name_title', 'contributor_name', 'project_title', 'version',
+    'process_development_compound_name', 'process_development_compound_cas_number',
+    'dwsim_database_compound_name', 'id',
+  ]);
+  $query_pro->condition('id', $flowsheet_proposal_id);
+  $abstracts_pro = $query_pro->execute()->fetchObject();
+
+  // Fetch PDF details
+  $query_pdf = $connection->select('dwsim_flowsheet_submitted_abstracts_file', 'f');
+  $query_pdf->fields('f', ['filename']);
+  $query_pdf->condition('proposal_id', $flowsheet_proposal_id);
+  $query_pdf->condition('filetype', 'A');
+  $abstracts_pdf = $query_pdf->execute()->fetchObject();
+  $abstract_filename = $abstracts_pdf && $abstracts_pdf->filename ? $abstracts_pdf->filename : "File not uploaded";
+
+  // Fetch process details
+  $query_process = $connection->select('dwsim_flowsheet_submitted_abstracts_file', 'f');
+  $query_process->fields('f', ['filename']);
+  $query_process->condition('proposal_id', $flowsheet_proposal_id);
+  $query_process->condition('filetype', 'S');
+  $abstracts_query_process = $query_process->execute()->fetchObject();
+  $abstracts_query_process_filename = $abstracts_query_process && $abstracts_query_process->filename 
+    ? $abstracts_query_process->filename : "File not uploaded";
+
+  // Check for abstracts
+  $query = $connection->select('dwsim_flowsheet_submitted_abstracts', 'a');
+  $query->fields('a', ['is_submitted', 'unit_operations_used_in_dwsim', 'thermodynamic_packages_used', 'logical_blocks_used']);
+  $query->condition('proposal_id', $flowsheet_proposal_id);
+  $abstracts_q = $query->execute()->fetchObject();
+
+  $unit_operations_used_in_dwsim = $abstracts_q && $abstracts_q->unit_operations_used_in_dwsim 
+    ? $abstracts_q->unit_operations_used_in_dwsim : "Not entered";
+  $thermodynamic_packages_used = $abstracts_q && $abstracts_q->thermodynamic_packages_used 
+    ? $abstracts_q->thermodynamic_packages_used : "Not entered";
+  $logical_blocks_used = $abstracts_q && $abstracts_q->logical_blocks_used 
+    ? $abstracts_q->logical_blocks_used : "Not entered";
+
+  // Table for compound information
+  $headers = [
+    "Name of compound for which process development is carried out",
+    "CAS No."
+  ];
+  $rows = [
+    [
+      $abstracts_pro->process_development_compound_name,
+      $abstracts_pro->process_development_compound_cas_number,
+    ]
+  ];
+  $prodata = [
+    '#type' => 'table',
+    '#header' => $headers,
+    '#rows' => $rows,
+  ];
+
+  // Generate return HTML
+  $download_flowsheet = \Drupal::l('Download flowsheet project', \Drupal\Core\Url::fromRoute('flowsheeting-project.full-download', ['project' => $flowsheet_proposal_id]));
+  $return_html .= '<strong>Proposer Name:</strong><br />' . $abstracts_pro->name_title . ' ' . $abstracts_pro->contributor_name . '<br /><br />';
+  $return_html .= '<strong>Title of the Flowsheet Project:</strong><br />' . $abstracts_pro->project_title . '<br /><br />';
+  $return_html .= '<strong>DWSIM version:</strong><br />' . $abstracts_pro->version . '<br /><br />';
+  $return_html .= '<strong>Unit Operations used in DWSIM:</strong><br />' . $unit_operations_used_in_dwsim . '<br /><br />';
+  $return_html .= '<strong>Thermodynamic Packages Used:</strong><br />' . $thermodynamic_packages_used . '<br /><br />';
+  $return_html .= '<strong>Logical Blocks used:</strong><br />' . $logical_blocks_used . '<br /><br />';
+  $return_html .= '<strong>Name of compound for which process development is carried out:</strong><br />' . render($prodata) . '<br />';
+  $return_html .= '<strong>List of compounds from DWSIM Database used in process flowsheet:</strong><br />' . $abstracts_pro->dwsim_database_compound_name . '<br /><br />';
+  $return_html .= '<strong>Uploaded an abstract (brief outline) of the project:</strong><br />' . $abstract_filename . '<br /><br />';
+  $return_html .= '<strong>Upload the DWSIM flowsheet for the developed process:</strong><br />' . $abstracts_query_process_filename . '<br /><br />';
+  $return_html .= $download_flowsheet;
+
+  return $return_html;
+}
 }
 ?>

@@ -695,7 +695,7 @@ function dwsim_flowsheet_get_proposal()
 	//$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE solution_provider_uid = ".$user->uid." AND solution_status = 2 ORDER BY id DESC LIMIT 1");
 	$query = \Drupal::database()->select('dwsim_flowsheet_proposal');
 	$query->fields('dwsim_flowsheet_proposal');
-	$query->condition('uid', $user->uid);
+	$query->condition('uid', $user->id());
 	$query->orderBy('id', 'DESC');
 	$query->range(0, 1);
 	$proposal_q = $query->execute();
@@ -1063,3 +1063,5 @@ function _dwsim_flowsheet_list_of_user_defined_compound($proposal_id)
 	}
 	return $data;
 }
+
+

@@ -427,7 +427,7 @@ $pending_rows[$pending_data->id] = [
       // @FIXME
 // l() expects a Url object, created from a route name or external URI.
 // $url = l('Upload abstract', 'flowsheeting-project/abstract-code/upload');
-
+$url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form'))->toString();
       $unit_operations_used_in_dwsim = "Not entered";
       $thermodynamic_packages_used = "Not entered";
       $logical_blocks_used = "Not entered";
@@ -456,21 +456,29 @@ $pending_rows[$pending_data->id] = [
     // 		'header' => $headers,
     // 		'rows' => $rows
     // 	));
+    $prodata = [
+      '#theme' => 'table',
+      '#header' => $headers,
+      '#rows' => $rows,
+  ];
 
     $uploaded_user_defined_compound_filepath = basename($proposal_data->user_defined_compound_filepath) ? basename($proposal_data->user_defined_compound_filepath) : "Not uploaded";
-    $return_html .= '<strong>Proposer Name:</strong><br />' . $proposal_data->name_title . ' ' . $proposal_data->contributor_name . '<br /><br />';
-    $return_html .= '<strong>Title of the Flowsheet Project:</strong><br />' . $proposal_data->project_title . '<br /><br />';
-    $return_html .= '<strong>DWSIM version:</strong><br />' . $proposal_data->version . '<br /><br />';
-    $return_html .= '<strong>Unit Operations used in DWSIM:</strong><br />' . $unit_operations_used_in_dwsim . '<br /><br />';
-    $return_html .= '<strong>Thermodynamic Packages Used:</strong><br />' . $thermodynamic_packages_used . '<br /><br />';
-    $return_html .= '<strong>Logical Blocks used:</strong><br />' . $logical_blocks_used . '<br /><br />';
-    $return_html .= '<strong>Name of compound for which process development is carried out:</strong><br />' . $prodata . '<br />';
-    $return_html .= '<strong>List of compounds from DWSIM Database used in process flowsheet:</strong><br />' . $proposal_data->dwsim_database_compound_name . '<br /><br />';
-    $return_html .= '<strong>List of user defined compounds used in process flowsheet:</strong><br />' . _dwsim_flowsheet_list_of_user_defined_compound($proposal_data->id) . '<br />';
-    $return_html .= '<strong>Uploaded user defined compound file:</strong><br />' . $uploaded_user_defined_compound_filepath . '<br /><br />';
-    $return_html .= '<strong>Uploaded an abstract (brief outline) of the project:</strong><br />' . $abstract_filename . '<br /><br />';
-    $return_html .= '<strong>Upload the DWSIM flowsheet for the developed process:</strong><br />' . $abstracts_query_process_filename . '<br /><br />';
-    $return_html .= $url . '<br />';
+    // $output
+    $return_html = [
+        '#markup' =>'<strong>Proposer Name:</strong><br />' . $proposal_data->name_title . ' ' . $proposal_data->contributor_name . '<br /><br />' .
+                  '<strong>Title of the Flowsheet Project:</strong><br />' . $proposal_data->project_title . '<br /><br />' .
+                  '<strong>DWSIM version:</strong><br />' . $proposal_data->version . '<br /><br />' .
+                  '<strong>Unit Operations used in DWSIM:</strong><br />' . $unit_operations_used_in_dwsim . '<br /><br />' .
+                  '<strong>Thermodynamic Packages Used:</strong><br />' . $thermodynamic_packages_used . '<br /><br />' .
+                  '<strong>Logical Blocks used:</strong><br />' . $logical_blocks_used . '<br /><br />' .
+                  '<strong>Name of compound for which process development is carried out:</strong><br />' . $prodata . '<br />' .
+                  '<strong>List of compounds from DWSIM Database used in process flowsheet:</strong><br />' . $proposal_data->dwsim_database_compound_name . '<br /><br />' .
+                  '<strong>List of user defined compounds used in process flowsheet:</strong><br />' . _dwsim_flowsheet_list_of_user_defined_compound($proposal_data->id) . '<br />' .
+                  '<strong>Uploaded user defined compound file:</strong><br />' . $uploaded_user_defined_compound_filepath . '<br /><br />' .
+                  '<strong>Uploaded an abstract (brief outline) of the project:</strong><br />' . $abstract_filename . '<br /><br />' .
+                  '<strong>Upload the DWSIM flowsheet for the developed process:</strong><br />' . $abstracts_query_process_filename . '<br /><br />' .
+                  $url . '<br />'
+    ];
     return $return_html;
   }
 
