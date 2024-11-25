@@ -96,7 +96,7 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
     $form['student_email_id'] = [
       '#title' => t('Student Email'),
       '#type' => 'item',
-      // '#markup' => \Drupal\user\Entity\User::load($proposal_data->uid)->getEmail(),
+      '#markup' => \Drupal\user\Entity\User::load($proposal_data->uid)->getEmail(),
       '#title' => t('Email'),
     ];
     $form['contributor_contact_no'] = [
@@ -191,11 +191,14 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
       '#header' => $headers,
       '#rows' => $rows,
   ];
+  // var_dump($page_content);die;
     $form['process_development_compound_name'] = [
-      '#type' => 'item',
+      '#type' => 'fieldset',
       '#title' => t('Name of compound for which process development is carried out'),
-      '#markup' => $page_content,
+      // '#markup' => $page_content,
     ];
+
+$form['process_development_compound_name']['table'] = $page_content;
     /*
 	$form['process_development_compound_cas_number'] = array(
 	'#type' => 'item',

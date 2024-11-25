@@ -36,7 +36,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
       '#options' => $this->_bulk_list_of_flowsheet_project(),
       '#default_value' => $selected,
       '#ajax' => [
-        'callback' => 'ajax_bulk_flowsheet_abstract_details_callback'
+        'callback' => '::ajax_bulk_flowsheet_abstract_details_callback'
         ],
       '#suffix' => '<div id="ajax_selected_flowsheet"></div><div id="ajax_selected_flowsheet_pdf"></div>',
     ];

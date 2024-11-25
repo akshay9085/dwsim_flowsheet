@@ -105,7 +105,7 @@ dwsim_flowsheet.download_solution_file:
   requirements:
     _permission: 'dwsim flowsheet download code'
 dwsim_flowsheet.download_abstract:
-  path: /flowsheeting-project/download/project-file
+  path: /flowsheeting-project/download/project-file/{proposal_id}
   defaults:
     _title: 'Code Download'
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_download_abstract'
@@ -133,7 +133,7 @@ dwsim_flowsheet.download_lab:
   requirements:
     _permission: 'dwsim flowsheet download code'
 dwsim_flowsheet.download_full_project:
-  path: /flowsheeting-project/full-download/project
+  path: /flowsheeting-project/full-download/project/{proposal_id}
   defaults:
     _title: 'Code Download'
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_download_full_project'
@@ -168,7 +168,7 @@ dwsim_flowsheet.progress_all:
   requirements:
     _permission: 'dwsim flowsheet download code'
 dwsim_flowsheet.run_form:
-  path: /flowsheeting-project/dwsim-flowsheet-run
+  path: /flowsheeting-project/dwsim-flowsheet-run/{id?}
   defaults:
     _title: 'Download Codes'
     _form: \Drupal\dwsim_flowsheet\Form\DwsimFlowsheetRunForm

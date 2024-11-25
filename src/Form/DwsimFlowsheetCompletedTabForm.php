@@ -35,12 +35,12 @@ class DwsimFlowsheetCompletedTabForm extends FormBase {
   }
 
   public function buildForm(array $form, FormStateInterface $form_state) {
-    //  $flowsheet_output = $this->_flowsheet_details('2023');
+     $flowsheet_output = $this->_flowsheet_details('2023');
 
-    // // You can render the result as part of the form
-    // $form['flowsheet_output'] = [
-    //     '#markup' => $flowsheet_output,
-    // ];
+    // You can render the result as part of the form
+    $form['flowsheet_output'] = [
+        '#markup' => $flowsheet_output,
+    ];
     $options_first = $this->_flowsheet_details_year_wise();
     $selected = !$form_state->getValue(['howmany_select']) ? $form_state->getValue(['howmany_select']) : key($options_first);
     $form = [];
@@ -154,15 +154,12 @@ WHERE `approval_status` = 3
       foreach ($records as $row) {
        
           $completion_date = date("d-M-Y", $row->actual_completion_date);
-
-          // Create the link for each project.
-       
-          $url = Url::fromUri('internal:/flowsheeting-project/dwsim-flowsheet-run/' . $row->id);
-          $link = Link::fromTextAndUrl($row->project_title, $url)->toString();
-          // Add the row data.
+          $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form'))->toString();
+         
+         
           $preference_rows[$row->id] = [
               $i,
-              Markup::create($link),
+              $project_url ,
               $row->contributor_name,
               $row->university,
               $completion_date

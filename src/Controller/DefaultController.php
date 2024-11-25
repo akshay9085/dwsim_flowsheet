@@ -482,56 +482,97 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
     return $return_html;
   }
 
-  public function dwsim_flowsheet_download_solution_file() {
-    $solution_file_id = arg(3);
-    $root_path = dwsim_flowsheet_path();
-    // $solution_files_q = db_query("SELECT * FROM {dwsim_flowsheet_solution_files} WHERE id = %d LIMIT 1", $solution_file_id);
-    $solution_files_q = \Drupal::database()->query("SELECT lmsf.*, lmp.directory_name FROM dwsim_flowsheet_solution_files lmsf JOIN dwsim_flowsheet_solution lms JOIN dwsim_flowsheet_experiment lme JOIN dwsim_flowsheet_proposal lmp WHERE lms.id = lmsf.solution_id AND lme.id = lms.experiment_id AND lmp.id = lme.proposal_id AND lmsf.id = :solution_id LIMIT 1", [
-      ':solution_id' => $solution_file_id
+
+  public function dwsim_flowsheet_download_solution_file()
+  {
+      $solution_file_id = \Drupal::routeMatch()->getParameter('proposal_id'); // Replace 'arg3' with the actual route parameter key.
+      $root_path = dwsim_flowsheet_path();
+  
+      $connection = \Drupal::database();
+      $query = $connection->query("
+          SELECT lmsf.*, lmp.directory_name 
+          FROM dwsim_flowsheet_solution_files lmsf 
+          JOIN dwsim_flowsheet_solution lms ON lms.id = lmsf.solution_id 
+          JOIN dwsim_flowsheet_experiment lme ON lme.id = lms.experiment_id 
+          JOIN dwsim_flowsheet_proposal lmp ON lmp.id = lme.proposal_id 
+          WHERE lmsf.id = :solution_id 
+          LIMIT 1", [
+          ':solution_id' => $solution_file_id,
       ]);
-    $solution_file_data = $solution_files_q->fetchObject();
-    header('Content-Type: ' . $solution_file_data->filemime);
-    //header('Content-Type: application/octet-stram');
-    header('Content-disposition: attachment; filename="' . str_replace(' ', '_', ($solution_file_data->filename)) . '"');
-    header('Content-Length: ' . filesize($root_path . $solution_file_data->directory_name . '/' . $solution_file_data->filepath));
-    readfile($root_path . $solution_file_data->directory_name . '/' . $solution_file_data->filepath);
+  
+      $solution_file_data = $query->fetchObject();
+  
+      if ($solution_file_data) {
+          $file_path = $root_path . $solution_file_data->directory_name . '/' . $solution_file_data->filepath;
+  
+          // Verify file existence
+          if (file_exists($file_path)) {
+              $response = new Response();
+              $response->headers->set('Content-Type', $solution_file_data->filemime);
+              $response->headers->set('Content-Disposition', 'attachment; filename="' . str_replace(' ', '_', $solution_file_data->filename) . '"');
+              $response->headers->set('Content-Length', filesize($file_path));
+  
+              $response->setContent(file_get_contents($file_path));
+              return $response;
+          } else {
+              throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('File not found.');
+          }
+      } else {
+          throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Solution file not found.');
+      }
   }
 
-  public function dwsim_flowsheet_download_abstract() {
-    $proposal_id = arg(3);
-    $root_path = dwsim_flowsheet_path();
-    //var_dump($proposal_id);die;
-    $query = \Drupal::database()->select('dwsim_flowsheet_submitted_abstracts_file');
-    $query->fields('dwsim_flowsheet_submitted_abstracts_file');
-    $query->condition('proposal_id', $proposal_id);
-    $query->condition('filetype', 'A');
-    $result = $query->execute();
-    $flowsheet_project_files = $result->fetchObject();
-    //var_dump($custom_model_project_files);die;
-    $query1 = \Drupal::database()->select('dwsim_flowsheet_proposal');
-    $query1->fields('dwsim_flowsheet_proposal');
-    $query1->condition('id', $proposal_id);
-    $result1 = $query1->execute();
-    $flowsheet = $result1->fetchObject();
-    $directory_name = $flowsheet->directory_name;
-    $samplecodename = $flowsheet_project_files->filename;
-    ob_clean();
-    header("Pragma: public");
-    header("Expires: 0");
-    header("Cache-Control: must-revalidate, post-check=0, pre-check=0");
-    header("Cache-Control: public");
-    header("Content-Description: File Transfer");
-    header("Content-Type: application/pdf");
-    header('Content-disposition: attachment; filename="' . $samplecodename . '"');
-    header("Content-Length: " . filesize($root_path . $directory_name . '/' . $samplecodename));
-    header("Content-Transfer-Encoding: binary");
-    header("Expires: 0");
-    header("Pragma: no-cache");
-    ob_clean();
-    readfile($root_path . $directory_name . '/' . $samplecodename);
-    //ob_end_flush();
-    //ob_clean();
+  public function dwsim_flowsheet_download_abstract()
+  {
+      // Fetch the proposal ID from the route parameters
+      $proposal_id = \Drupal::routeMatch()->getParameter('proposal_id'); // Replace 'arg3' with the actual parameter key in the route
+      $root_path = dwsim_flowsheet_path();
+  
+      // Fetch file details for the abstract
+      $connection = \Drupal::database();
+  
+      $query = $connection->select('dwsim_flowsheet_submitted_abstracts_file', 'dfaf')
+          ->fields('dfaf')
+          ->condition('dfaf.proposal_id', $proposal_id)
+          ->condition('dfaf.filetype', 'A');
+      $flowsheet_project_files = $query->execute()->fetchObject();
+  
+      if (!$flowsheet_project_files) {
+          throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Abstract file not found.');
+      }
+  
+      // Fetch the directory name for the proposal
+      $query1 = $connection->select('dwsim_flowsheet_proposal', 'dfp')
+          ->fields('dfp')
+          ->condition('dfp.id', $proposal_id);
+      $flowsheet = $query1->execute()->fetchObject();
+  
+      if (!$flowsheet) {
+          throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('Proposal not found.');
+      }
+  
+      $directory_name = $flowsheet->directory_name;
+      $filename = $flowsheet_project_files->filename;
+      $file_path = $root_path . $directory_name . '/' . $filename;
+  
+      // Check if the file exists
+      if (!file_exists($file_path)) {
+          throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException('File does not exist.');
+      }
+  
+      // Prepare and return the response
+      $response = new Response();
+      $response->headers->set('Content-Type', 'application/pdf');
+      $response->headers->set('Content-Disposition', 'attachment; filename="' . str_replace(' ', '_', $filename) . '"');
+      $response->headers->set('Content-Length', filesize($file_path));
+      $response->headers->set('Cache-Control', 'must-revalidate, post-check=0, pre-check=0');
+      $response->headers->set('Pragma', 'public');
+      $response->headers->set('Expires', '0');
+      $response->setContent(file_get_contents($file_path));
+  
+      return $response;
   }
+  
 
   public function dwsim_flowsheet_download_solution() {
     $solution_id = arg(3);
@@ -557,8 +598,8 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
     /* zip filename */
     $zip_filename = $root_path . 'zip-' . time() . '-' . rand(0, 999999) . '.zip';
     /* creating zip archive on the server */
-    $zip = new ZipArchive();
-    $zip->open($zip_filename, ZipArchive::CREATE);
+    $zip = new \ZipArchive();
+    $zip->open($zip_filename, \ZipArchive::CREATE);
     while ($solution_files_row = $solution_files_q->fetchObject()) {
       $zip->addFile($root_path . $solution_files_row->directory_name . '/' . $solution_files_row->filepath, $CODE_PATH . str_replace(' ', '_', ($solution_files_row->filename)));
     }
@@ -604,8 +645,8 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
     /* zip filename */
     $zip_filename = $root_path . 'zip-' . time() . '-' . rand(0, 999999) . '.zip';
     /* creating zip archive on the server */
-    $zip = new ZipArchive();
-    $zip->open($zip_filename, ZipArchive::CREATE);
+    $zip = new \ZipArchive();
+    $zip->open($zip_filename, \ZipArchive::CREATE);
     $query = \Drupal::database()->select('dwsim_flowsheet_solution');
     $query->fields('dwsim_flowsheet_solution');
     $query->condition('experiment_id', $experiment_id);
@@ -667,8 +708,8 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
     /* zip filename */
     $zip_filename = $root_path . 'zip-' . time() . '-' . rand(0, 999999) . '.zip';
     /* creating zip archive on the server */
-    $zip = new ZipArchive();
-    $zip->open($zip_filename, ZipArchive::CREATE);
+    $zip = new \ZipArchive();
+    $zip->open($zip_filename, \ZipArchive::CREATE);
     $query = \Drupal::database()->select('dwsim_flowsheet_experiment');
     $query->fields('dwsim_flowsheet_experiment');
     $query->condition('proposal_id', $lab_id);
@@ -740,78 +781,103 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
     }
   }
 
-  public function dwsim_flowsheet_download_full_project() {
+
+
+public function dwsim_flowsheet_download_full_project() {
     $user = \Drupal::currentUser();
-    $flowsheet_id = arg(3);
+    $flowsheet_id = \Drupal::routeMatch()->getParameter('proposal_id');
     $root_path = dwsim_flowsheet_path();
-    $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
-    $query->fields('dwsim_flowsheet_proposal');
-    $query->condition('id', $flowsheet_id);
-    $flowsheet_q = $query->execute();
-    $flowsheet_data = $flowsheet_q->fetchObject();
+
+    // Fetch the flowsheet data
+    $query = \Drupal::database()->select('dwsim_flowsheet_proposal', 'dfp')
+        ->fields('dfp')
+        ->condition('id', $flowsheet_id);
+    $flowsheet_data = $query->execute()->fetchObject();
+
+    if (!$flowsheet_data) {
+        \Drupal::messenger()->addError(t('Flowsheet data not found.'));
+        return new RedirectResponse('/flowsheeting-project/full-download/project');
+    }
+
     $FLOWSHEET_PATH = $flowsheet_data->directory_name . '/';
-    /* zip filename */
     $zip_filename = $root_path . 'zip-' . time() . '-' . rand(0, 999999) . '.zip';
-    /* creating zip archive on the server */
-    $zip = new ZipArchive();
-    $zip->open($zip_filename, ZipArchive::CREATE);
-    $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
-    $query->fields('dwsim_flowsheet_proposal');
-    $query->condition('id', $flowsheet_id);
-    $flowsheet_udc_q = $query->execute();
-    while ($flowsheet_udc_row = $flowsheet_udc_q->fetchObject()) {
-      if ($flowsheet_udc_row->user_defined_compound_filepath || $flowsheet_udc_row->user_defined_compound_filepath != 'NULL') {
-        $USER_DEFINED_PATH = 'user_defined_compound/';
-        $zip->addFile($root_path . $FLOWSHEET_PATH . '/' . $flowsheet_udc_row->user_defined_compound_filepath, $FLOWSHEET_PATH . $USER_DEFINED_PATH . str_replace(' ', '_', basename($flowsheet_udc_row->user_defined_compound_filepath)));
-      } //$flowsheet_udc_row->user_defined_compound_filepath || $flowsheet_udc_row->user_defined_compound_filepath != 'NULL'
-    } //$flowsheet_udc_row = $flowsheet_udc_q->fetchObject()
-    $query = \Drupal::database()->select('dwsim_flowsheet_submitted_abstracts_file');
-    $query->fields('dwsim_flowsheet_submitted_abstracts_file');
-    $query->condition('proposal_id', $flowsheet_id);
-    $flowsheet_f_q = $query->execute();
-    while ($flowsheet_f_row = $flowsheet_f_q->fetchObject()) {
-      $zip->addFile($root_path . $FLOWSHEET_PATH . '/' . $flowsheet_f_row->filepath, $FLOWSHEET_PATH . str_replace(' ', '_', basename($flowsheet_f_row->filename)));
-    } //$flowsheet_f_row = $flowsheet_f_q->fetchObject()
+
+    // Create the zip archive
+    $zip = new \ZipArchive();
+    if ($zip->open($zip_filename, \ZipArchive::CREATE) !== true) {
+        \Drupal::messenger()->addError(t('Failed to create zip archive.'));
+        return new RedirectResponse('/flowsheeting-project/full-download/project' . $proposal_id);
+    }
+
+    // Add user-defined compound files
+    $udc_query = \Drupal::database()->select('dwsim_flowsheet_proposal', 'dfp')
+        ->fields('dfp')
+        ->condition('id', $flowsheet_id);
+    $udc_results = $udc_query->execute();
+
+    foreach ($udc_results as $udc_row) {
+        if (!empty($udc_row->user_defined_compound_filepath) && $udc_row->user_defined_compound_filepath !== 'NULL') {
+            $USER_DEFINED_PATH = 'user_defined_compound/';
+            $zip->addFile(
+                $root_path . $FLOWSHEET_PATH . '/' . $udc_row->user_defined_compound_filepath,
+                $FLOWSHEET_PATH . $USER_DEFINED_PATH . str_replace(' ', '_', basename($udc_row->user_defined_compound_filepath))
+            );
+        }
+    }
+
+    // Add abstract files
+    $abstract_query = \Drupal::database()->select('dwsim_flowsheet_submitted_abstracts_file', 'dfaf')
+        ->fields('dfaf')
+        ->condition('proposal_id', $flowsheet_id);
+    $abstract_results = $abstract_query->execute();
+
+    foreach ($abstract_results as $abstract_row) {
+        $zip->addFile(
+            $root_path . $FLOWSHEET_PATH . '/' . $abstract_row->filepath,
+            $FLOWSHEET_PATH . str_replace(' ', '_', basename($abstract_row->filename))
+        );
+    }
+
     $zip_file_count = $zip->numFiles;
     $zip->close();
+
+    // Check if the zip file contains any files
     if ($zip_file_count > 0) {
-      if ($user->uid) {
-        /* download zip file */
+        // Send the zip file as a response
+        $download_name = str_replace(' ', '_', $flowsheet_data->project_title) . '.zip';
+
         header('Content-Type: application/zip');
-        header('Content-disposition: attachment; filename="' . str_replace(' ', '_', $flowsheet_data->project_title) . '.zip"');
-        header('Content-Length: ' . filesize($zip_filename));
-        //ob_end_flush();
-        ob_clean();
-        //flush();
-        readfile($zip_filename);
-        unlink($zip_filename);
-      } //$user->uid
-      else {
-        header('Content-Type: application/zip');
-        header('Content-disposition: attachment; filename="' . str_replace(' ', '_', $flowsheet_data->project_title) . '.zip"');
+        header('Content-Disposition: attachment; filename="' . $download_name . '"');
         header('Content-Length: ' . filesize($zip_filename));
         header("Content-Transfer-Encoding: binary");
         header('Expires: 0');
         header('Pragma: no-cache');
-        //ob_end_flush();
-        ob_clean();
-        //flush();
+        ob_clean(); // Clear output buffer
+        flush();
         readfile($zip_filename);
+
+        // Remove the temporary zip file
         unlink($zip_filename);
-      }
-    } //$zip_file_count > 0
-    else {
-      \Drupal::messenger()->addError("There are no flowsheet project in this proposal to download");
-      drupal_goto('flowsheeting-project/full-download/project');
+        exit(); // Terminate script execution after sending the file
+    } else {
+        // No files in the zip
+        \Drupal::messenger()->addError(t('There are no flowsheet projects in this proposal to download.'));
+        return new RedirectResponse('/flowsheeting-project/full-download/project' . $proposal_id);
     }
-  }
+}
 
   public function dwsim_flowsheet_download_completed_proposals() {
     $output = "";
     // @FIXME
     // l() expects a Url object, created from a route name or external URI.
     // $output .= "Click ".l("here","/flowsheeting-project/download-proposals-all"). " to download the proposals of the participants" ."<h4>";
+    $url = Url::fromUserInput('/flowsheeting-project/download-proposals-all');
 
+    // Create a link object with text and URL.
+    $link = Link::fromTextAndUrl(t('here'), $url)->toString();
+    
+    // Output the message with the link.
+    $output .= t('Click @link to download the proposals of the participants.', ['@link' => $link]) . '<h4>';
 
     return $output;
 
