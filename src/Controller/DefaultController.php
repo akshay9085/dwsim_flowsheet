@@ -525,7 +525,7 @@ $url = Link::fromTextAndUrl('Upload abstract', Url::fromRoute('dwsim_flowsheet.u
   public function dwsim_flowsheet_download_abstract()
   {
       // Fetch the proposal ID from the route parameters
-      $proposal_id = \Drupal::routeMatch()->getParameter('proposal_id'); // Replace 'arg3' with the actual parameter key in the route
+      $proposal_id = \Drupal::routeMatch()->getParameter('proposal_id'); //arg 3
       $root_path = dwsim_flowsheet_path();
   
       // Fetch file details for the abstract
@@ -965,87 +965,101 @@ public function dwsim_flowsheet_download_full_project() {
     }
   }
 
-  public function dwsim_flowsheet_completed_proposals_all() {
-    $output = "";
+public function dwsim_flowsheet_completed_proposals_all() {
+    $build = [];
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
     $query->condition('approval_status', 3);
     $query->orderBy('actual_completion_date', 'DESC');
-    //$query->condition('is_completed', 1);
     $result = $query->execute();
-    if ($result->rowCount() == 0) {
-      $output .= "Work has been completed for the following flow sheets. We welcome your contributions. For more details, please visit " . \Drupal\Core\Link::fromTextAndUrl("https://dwsim.fossee.in/flowsheeting-project", \Drupal\Core\Url::fromUri("https://dwsim.fossee.in/flowsheeting-project")) . "<br>" . "<h4>" . "If you are looking for flowsheeting project ideas, " . \Drupal\Core\Link::fromTextAndUrl("click here", \Drupal\Core\Url::fromUri("https://dwsim.fossee.in/flowsheeting-ideas")) . "</h4>" . "<hr>";
+    $records = $result->fetchAll();
 
-    } //$result->rowCount() == 0
-    else {
-      $output .= "Total number of completed flowsheets: " . $result->rowCount() . "<br>";
-      $output .= "Work has been completed for the following flow sheets. We welcome your contributions. For more details, please visit " . \Drupal\Core\Link::fromTextAndUrl("https://dwsim.fossee.in/flowsheeting-project", \Drupal\Core\Url::fromUri("https://dwsim.fossee.in/flowsheeting-project")) . "<br>" . "<h4>" . "If you are looking for flowsheeting project ideas, " . \Drupal\Core\Link::fromTextAndUrl("click here", \Drupal\Core\Url::fromUri("https://dwsim.fossee.in/flowsheeting-ideas")) . "</h4>" . "<hr>";
-      $preference_rows = [];
-      $i = $result->rowCount();
-      while ($row = $result->fetchObject()) {
-        $completion_date = date("Y", $row->actual_completion_date);
-        // @FIXME
-        // l() expects a Url object, created from a route name or external URI.
-        // $preference_rows[] = array(
-        // 				$i,
-        // 				l($row->project_title, "flowsheeting-project/dwsim-flowsheet-run/" . $row->id, array('attributes' => array('title' => 'This is a zip file containing a pdf (abstract) and a dwxml/dwxmz file which is the DWSIM flow sheet which is to be viewed by right clicking on the file and opening with DWSIM.'))),
-        // 				$row->contributor_name,
-        // 				$row->university,
-        // 				$completion_date
-        // 			);
+    if (count($records) == 0) {
+        $build[] = [
+            '#markup' => $this->t('Work has been completed for the following flow sheets. We welcome your contributions. For more details, please visit @link.', [
+                '@link' => Link::fromTextAndUrl($this->t('https://dwsim.fossee.in/flowsheeting-project'), Url::fromUri('https://dwsim.fossee.in/flowsheeting-project'))->toString(),
+            ]),
+        ];
+        $build[] = [
+            '#markup' => '<h4>' . $this->t('If you are looking for flowsheeting project ideas, @link.', [
+                '@link' => Link::fromTextAndUrl($this->t('click here'), Url::fromUri('https://dwsim.fossee.in/flowsheeting-ideas'))->toString(),
+            ]) . '</h4><hr>',
+        ];
+    } else {
+        $build[] = [
+            '#markup' => $this->t('Total number of completed flowsheets: @count'. '<br />', ['@count' => count($records)]),
+        ];
 
-        $i--;
-      } //$row = $result->fetchObject()
-      $preference_header = [
-        'No',
-        'Flowsheet Project',
-        'Contributor Name',
-        'University / Institute',
-        'Year of Completion',
+        $build[] = [
+            '#markup' => $this->t('Work has been completed for the following flow sheets. For more details, please visit @link.', [
+                '@link' => Link::fromTextAndUrl($this->t('https://dwsim.fossee.in/flowsheeting-project'), Url::fromUri('https://dwsim.fossee.in/flowsheeting-project'))->toString(),
+            ]),
+        ];
+
+        $preference_rows = [];
+        $i = count($records);
+        foreach ($records as $row) {
+            $completion_date = date("d-M-Y", $row->actual_completion_date);
+            $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form'))->toString();
+            $preference_rows[] = [
+                $i,
+                ['data' => $project_url, 'escape' => FALSE], // Escape FALSE to allow HTML links.
+                $row->contributor_name,
+                $row->university,
+                $completion_date,
+            ];
+            $i--;
+        }
+        $preference_header = [
+          'No',
+          'Flowsheet Project',
+          'Contributor Name',
+          'University / Institute',
+          'Date of Completion'
       ];
-      // @FIXME
-      // theme() has been renamed to _theme() and should NEVER be called directly.
-      // Calling _theme() directly can alter the expected output and potentially
-      // introduce security issues (see https://www.drupal.org/node/2195739). You
-      // should use renderable arrays instead.
-      // 
-      // 
-      // @see https://www.drupal.org/node/2195739
-      // $output .= theme('table', array(
-      // 			'header' => $preference_header,
-      // 			'rows' => $preference_rows
-      // 		));
-
+        $build[] = [
+            '#type' => 'table',
+            '#header' => $preference_header,
+            '#rows' => $preference_rows,
+        ];
     }
-    return $output;
-  }
+
+    return $build;
+}
 
   public function dwsim_flowsheet_progress_all() {
-    $page_content = "";
+    $page_content = [];
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
     $query->condition('approval_status', 1);
     $query->condition('is_completed', 0);
     $query->orderBy('approval_date', DESC);
     $result = $query->execute();
-    if ($result->rowCount() == 0) {
-      $page_content .= "Work is in progress for the following flowsheets under Flowsheeting Project<hr>";
+    $records = $result->fetchAll();
+    if (count($records) == 0) {
+      $page_content[] = [
+        '#markup' => $this->t('Work is in progress for the following flowsheets under Flowsheeting Project<hr>')
+    ];
     } //$result->rowCount() == 0
     else {
-      $page_content .= "Work is in progress for the following flowsheets under Flowsheeting Project<hr>";
-      ;
+      $page_content[] = [
+        '#markup' => $this->t('Work is in progress for the following flowsheets under Flowsheeting Project<hr>')
+    ];
+      
       $preference_rows = [];
-      $i = $result->rowCount();
-      while ($row = $result->fetchObject()) {
-        $approval_date = date("Y", $row->approval_date);
-        $preference_rows[] = [
-          $i,
-          $row->project_title,
-          $row->contributor_name,
-          $row->university,
-          $approval_date,
-        ];
-        $i--;
+      $i = count($records);
+
+      foreach ($records as $row) {
+          $completion_date = date("d-M-Y", $row->actual_completion_date);
+          $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form'))->toString();
+          $preference_rows[] = [
+              $i,
+              $row->project_title, 
+              $row->contributor_name,
+              $row->university,
+              $completion_date,
+          ];
+          $i--;
       } //$row = $result->fetchObject()
       $preference_header = [
         'No',
@@ -1054,25 +1068,20 @@ public function dwsim_flowsheet_download_full_project() {
         'University / Institute',
         'Year',
       ];
-      // @FIXME
-      // theme() has been renamed to _theme() and should NEVER be called directly.
-      // Calling _theme() directly can alter the expected output and potentially
-      // introduce security issues (see https://www.drupal.org/node/2195739). You
-      // should use renderable arrays instead.
-      // 
-      // 
-      // @see https://www.drupal.org/node/2195739
-      // $page_content .= theme('table', array(
-      // 			'header' => $preference_header,
-      // 			'rows' => $preference_rows
-      // 		));
-
+    
+      $page_content =  [
+        '#type' => 'table',
+        '#header' => $preference_header,
+        '#rows' => $preference_rows,
+        
+      ];
     }
     return $page_content;
   }
 
   public function dwsim_flowsheet_download_user_defined_compound() {
-    $proposal_id = arg(3);
+    // $proposal_id = arg(3);
+    $proposal_id = \Drupal::routeMatch()->getParameter('proposal_id'); 
     $root_path = dwsim_flowsheet_document_path();
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');

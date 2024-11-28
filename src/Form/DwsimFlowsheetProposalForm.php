@@ -410,7 +410,7 @@ Ex: 64-17-5'),
         'udc_compound_add_more_add_one'
         ],
       '#ajax' => [
-        'callback' => 'udc_compound_add_more_callback',
+        'callback' => '::udc_compound_add_more_callback',
         'wrapper' => [
           'udc-field1-fieldset-wrapper'
           ],
@@ -425,7 +425,7 @@ Ex: 64-17-5'),
           'udc_compound_add_more_remove_one'
           ],
         '#ajax' => [
-          'callback' => 'udc_compound_add_more_callback',
+          'callback' => '::udc_compound_add_more_callback',
           'wrapper' => [
             'udc-field1-fieldset-wrapper'
             ],
@@ -464,7 +464,24 @@ Ex: 64-17-5'),
     ];
     return $form;
   }
-
+  public function udc_compound_add_more_add_one($form, &$form_state)
+  {
+    $form_state['user_defined_compound_num']++;
+    $form_state['rebuild'] = TRUE;
+    //$form_state['no_redirect'] = TRUE;
+  }
+  public function udc_compound_add_more_remove_one($form, &$form_state)
+  {
+    if ($form_state['user_defined_compound_num'] > 1)
+    {
+      $form_state['user_defined_compound_num']--;
+    } //$form_state['user_defined_compound_num'] > 1
+    $form_state['rebuild'] = TRUE;
+  }
+  public function udc_compound_add_more_callback($form, &$form_state)
+  {
+    return $form['upload_u_compound']['udc_field1_fieldset'];
+  }
   public function validateForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $project_title = $form_state->getValue(['project_title']);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
@@ -734,7 +751,7 @@ Ex: 64-17-5'),
       ":contributor_name" => _df_sentence_case(trim($v['contributor_name'])),
       ":contact_no" => $v['contributor_contact_no'],
       ":gender" => $v['gender'],
-      ":month_year_of_degree" => $month_year_of_degree,
+      ":month_year_of_degree" => $this->removeDayFromDate($month_year_of_degree),
       ":university" => _df_sentence_case($v['university']),
       ":city" => $v['city'],
       ":pincode" => $v['pincode'],
@@ -779,7 +796,7 @@ $proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->ex
             ":compound_type" => 'U',
           ];
           /* storing the row id in $result */
-          $compoundresult = \Drupal::database()->query($compoundquery, $compoundargs, $compoundquery);
+          $compoundresult = \Drupal::database()->query($compoundquery, $compoundargs);
           if ($compoundresult != 0) {
             $compounds++;
           } //$compoundresult != 0
@@ -830,30 +847,44 @@ $proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->ex
       return;
     } //!$proposal_id
 	/* sending email */
-    // $email_to = $user->mail;
-    // $form = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
-    // $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
-    // $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
-    // $params['dwsim_flowsheet_proposal_received']['proposal_id'] = $proposal_id;
-    // $params['dwsim_flowsheet_proposal_received']['user_id'] = $user->uid;
-    // $params['dwsim_flowsheet_proposal_received']['headers'] = [
-    //   'From' => $form,
-    //   'MIME-Version' => '1.0',
-    //   'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
-    //   'Content-Transfer-Encoding' => '8Bit',
-    //   'X-Mailer' => 'Drupal',
-    //   'Cc' => $cc,
-    //   'Bcc' => $bcc,
-    // ];
+    $email_to = $user->getMail();
+    $form = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
+    $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
+    $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
+    $params['dwsim_flowsheet_proposal_received']['proposal_id'] = $proposal_id;
+    $params['dwsim_flowsheet_proposal_received']['user_id'] = $user->id();
+    $params['dwsim_flowsheet_proposal_received']['headers'] = [
+      'From' => $form,
+      'MIME-Version' => '1.0',
+      'Content-Type' => 'text/plain; charset=UTF-8; format=flowed; delsp=yes',
+      'Content-Transfer-Encoding' => '8Bit',
+      'X-Mailer' => 'Drupal',
+      'Cc' => $cc,
+      'Bcc' => $bcc,
+    ];
+    if (!\Drupal::service('plugin.manager.mail')->mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, 'en', $params, $form, TRUE)) {
+      \Drupal::messenger()->addError('Error sending email message.');
+    }
     // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, user_preferred_language($user), $params, $form, TRUE)) {
     //   \Drupal::messenger()->addError('Error sending email message.');
     // }
-    \Drupal::messenger()->addStatus(t('We have received your DWSIM Flowsheeting proposal. We will get back to you soon.'));
+
     // drupal_goto('');
     $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
     // Send the redirect response
     $response->send();
+    \Drupal::messenger()->addStatus(t('We have received your DWSIM Flowsheeting proposal. We will get back to you soon.'));
   }
-
+  //to remove day from date eg.2024-10-24 to 2024-10
+  public function removeDayFromDate($date) {
+    $date_parts = explode('-', $date);
+    if (count($date_parts) === 3) {
+      
+        return $date_parts[0] . '-' . $date_parts[1];
+    }
+ 
+    return $date;
+  }
 }
+
 ?>

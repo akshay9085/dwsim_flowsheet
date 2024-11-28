@@ -14,6 +14,9 @@ use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\HtmlCommand;
 use Drupal\Core\Ajax\ReplaceCommand;
 use Drupal\Core\Database\Database;
+use Drupal\Core\Link;
+use Drupal\Core\Url;
+use Drupal\Core\Render\RendererInterface;
 
 class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
 
@@ -25,6 +28,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
   }
 
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
+    // var_dump($this->_flowsheet_details(1109));die;
     $options_first = $this->_bulk_list_of_flowsheet_project();
     $selected = !$form_state->getValue(['flowsheet_project']) ? $form_state->getValue([
       'flowsheet_project'
@@ -93,7 +97,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
   
     if ($flowsheet_project_default_value != 0) {
       // Update the selected flowsheet details.
-      $details_html = _flowsheet_details($flowsheet_project_default_value);
+      $details_html = $this->_flowsheet_details($flowsheet_project_default_value);
       $response->addCommand(new HtmlCommand('#ajax_selected_flowsheet', $details_html));
   
       // Update the flowsheet actions dropdown.
@@ -155,23 +159,23 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
             // // to ensure that it uses the correct configuration object.
             // $email_body = array(
             // 						0 => t('
-            // 
+            
             // Dear ' . $user_info->contributor_name . ',
-            // 
+            
             // Congratulations!
             // Your DWSIM flowsheet and abstract with the following details have been approved.
-            // 
+            
             // Full Name: ' . $user_info->name_title . ' ' . $user_info->contributor_name . '
             // Project Title: ' . $user_info->project_title . '
             // Name of compound for which process development is carried out  : ' . $user_info->process_development_compound_name . '
-            // 
+            
             // Kindly send us the internship forms as early as possible for processing your honorarium on time. In case you have already sent these forms, please share the the consignment number or tracking id with us.
-            // 
+            
             // Note: It will take upto 30 days from the time we receive your forms, to process your honorarium.
-            // 
-            // 
+            
+            
             // Best Wishes,
-            // 
+            
             // !site_name Team
             // FOSSEE, IIT Bombay', array(
             // 							'!site_name' => variable_get('site_name', ''),
@@ -547,7 +551,9 @@ public function _flowsheet_details($flowsheet_proposal_id) {
   ];
 
   // Generate return HTML
-  $download_flowsheet = \Drupal::l('Download flowsheet project', \Drupal\Core\Url::fromRoute('flowsheeting-project.full-download', ['project' => $flowsheet_proposal_id]));
+  $route_url = Url::fromRoute('dwsim_flowsheet.download_full_project', ['proposal_id' => $flowsheet_proposal_id]);
+$download_flowsheet = Link::fromTextAndUrl('Download flowsheet project', $route_url)->toString();
+  // $download_flowsheet = \Drupal::l('Download flowsheet project', \Drupal\Core\Url::fromRoute('flowsheeting-project.full-download', ['project' => $flowsheet_proposal_id]));
   $return_html .= '<strong>Proposer Name:</strong><br />' . $abstracts_pro->name_title . ' ' . $abstracts_pro->contributor_name . '<br /><br />';
   $return_html .= '<strong>Title of the Flowsheet Project:</strong><br />' . $abstracts_pro->project_title . '<br /><br />';
   $return_html .= '<strong>DWSIM version:</strong><br />' . $abstracts_pro->version . '<br /><br />';

@@ -214,8 +214,9 @@ $form['process_development_compound_name']['table'] = $page_content;
     $form['user_defined_compounds_used_in_process_flowsheetcompound_name'] = [
       '#type' => 'item',
       '#title' => t('List of user defined compounds used in process flowsheet'),
-      '#markup' => _dwsim_flowsheet_list_of_user_defined_compound($proposal_id),
+      // '#markup' => _dwsim_flowsheet_list_of_user_defined_compound($proposal_id),
     ];
+    $form['user_defined_compounds_used_in_process_flowsheetcompound_name']['table'] =_dwsim_flowsheet_list_of_user_defined_compound($proposal_id);
     if (($proposal_data->user_defined_compound_filepath != "") && ($proposal_data->user_defined_compound_filepath != 'NULL')) {
       // @FIXME
 // l() expects a Url object, created from a route name or external URI.

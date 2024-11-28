@@ -91,7 +91,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     ];
     if ($abstracts_q == TRUE) {
       if ($abstracts_q->unit_operations_used_in_dwsim) {
-        $existing_unit_operations_used_in_dwsim = default_value_for_selections("unit_operations_used_in_dwsim", $proposal_data->id);
+        $existing_unit_operations_used_in_dwsim = $this->default_value_for_selections("unit_operations_used_in_dwsim", $proposal_data->id);
         $form['unit_operations_used_in_dwsim'] = [
           '#type' => 'select',
           '#title' => t('Unit Operations used in DWSIM'),
@@ -117,7 +117,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     }
     if ($abstracts_q == TRUE) {
       if ($abstracts_q->thermodynamic_packages_used) {
-        $existing_thermodynamic_packages_used = default_value_for_selections("thermodynamic_packages_used", $proposal_data->id);
+        $existing_thermodynamic_packages_used = $this->default_value_for_selections("thermodynamic_packages_used", $proposal_data->id);
         $form['thermodynamic_packages_used'] = [
           '#type' => 'select',
           '#title' => t('Thermodynamic Packages Used'),
@@ -144,7 +144,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     if ($abstracts_q == TRUE) {
       //var_dump($abstracts_q->logical_blocks_used);die;
       if ($abstracts_q->logical_blocks_used != "Not entered") {
-        $existing_logical_blocks_used = default_value_for_selections("logical_blocks_used", $proposal_data->id);
+        $existing_logical_blocks_used = $this->default_value_for_selections("logical_blocks_used", $proposal_data->id);
         $form['logical_blocks_used'] = [
           '#type' => 'select',
           '#title' => t('Logical Blocks used (If any)'),
@@ -203,7 +203,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       '#markup' => $prodata,
     ];
     if ($proposal_data->dwsim_database_compound_name) {
-      $existing_dwsim_database_compound_name = default_value_for_selections("dwsim_database_compound_name", $proposal_data->id);
+      $existing_dwsim_database_compound_name = $this->default_value_for_selections("dwsim_database_compound_name", $proposal_data->id);
       $form['list_of_compounds_from_dwsim_database_used_in_process_flowsheet'] = [
         '#type' => 'select',
         '#title' => t('List of compounds from DWSIM Database used in process flowsheet'),
@@ -280,7 +280,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
 			)
 		);*/
       ////////////////////////////
-      $existing_uploaded_udc_file = default_value_for_uploaded_files("UDC", $proposal_data->id);
+      $existing_uploaded_udc_file = $this->default_value_for_uploaded_files("UDC", $proposal_data->id);
       if (!$existing_uploaded_udc_file) {
         $existing_uploaded_udc_file = new \stdClass();
         $existing_uploaded_udc_file->filename = "No file uploaded";
@@ -354,7 +354,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
           ],
         ];
       } //$form_state['num_user_defined_compounds'] > 1
-      $existing_uploaded_udc_file = default_value_for_uploaded_files("UDC", $proposal_data->id);
+      $existing_uploaded_udc_file = $this->default_value_for_uploaded_files("UDC", $proposal_data->id);
       if (!$existing_uploaded_udc_file) {
         $existing_uploaded_udc_file = new \stdClass();
         $existing_uploaded_udc_file->filename = "No file uploaded";
@@ -378,7 +378,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       } //$no_js_use
     }
     //////////////////////////////////////////////////////
-    $existing_uploaded_A_file = default_value_for_uploaded_files("A", $proposal_data->id);
+    $existing_uploaded_A_file = $this->default_value_for_uploaded_files("A", $proposal_data->id);
     if (!$existing_uploaded_A_file) {
       $existing_uploaded_A_file = new \stdClass();
       $existing_uploaded_A_file->filename = "No file uploaded";
@@ -388,7 +388,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
       '#title' => t('Upload an abstract (brief outline) of the project.'),
       '#description' => t('<span style="color:red;">Current File :</span> ' . $existing_uploaded_A_file->filename . '<br />Separate filenames with underscore. No spaces or any special characters allowed in filename.') . '<br />' . t('<span style="color:red;">Allowed file extensions : ') . \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_abstract_upload_extensions') . '</span>',
     ];
-    $existing_uploaded_S_file = default_value_for_uploaded_files("S", $proposal_data->id);
+    $existing_uploaded_S_file = $this->default_value_for_uploaded_files("S", $proposal_data->id);
     if (!$existing_uploaded_S_file) {
       $existing_uploaded_S_file = new \stdClass();
       $existing_uploaded_S_file->filename = "No file uploaded";
@@ -405,9 +405,6 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Submit'),
-      '#submit' => [
-        'dwsim_flowsheet_upload_abstract_code_form_submit'
-        ],
     ];
     // @FIXME
     // l() expects a Url object, created from a route name or external URI.
@@ -459,13 +456,13 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     } //$form_state['values']['list_of_compounds_from_dwsim_database_used_in_process_flowsheet']
     if (isset($_FILES['files'])) {
       /* check if file is uploaded */
-      $existing_uploaded_A_file = default_value_for_uploaded_files("A", $form_state->getValue([
+      $existing_uploaded_A_file = $this->default_value_for_uploaded_files("A", $form_state->getValue([
         'prop_id'
         ]));
-      $existing_uploaded_S_file = default_value_for_uploaded_files("S", $form_state->getValue([
+      $existing_uploaded_S_file = $this->default_value_for_uploaded_files("S", $form_state->getValue([
         'prop_id'
         ]));
-      $existing_uploaded_udc_file = default_value_for_uploaded_files("UDC", $form_state->getValue([
+      $existing_uploaded_udc_file = $this->default_value_for_uploaded_files("UDC", $form_state->getValue([
         'prop_id'
         ]));
       if (!$existing_uploaded_S_file) {
@@ -589,9 +586,12 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
 
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
+    $user_id_int = (int) $user->id();
+    // var_dump($user_id_int);die;
     $v = $form_state->getValues();
     $root_path = dwsim_flowsheet_path();
     $proposal_data = dwsim_flowsheet_get_proposal();
+    // var_dump($proposal_data->id);die;
     $proposal_id = $proposal_data->id;
     if (!$proposal_data) {
       // drupal_goto('');
@@ -618,7 +618,7 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
         ":dwsim_database_compound_name" => $v['list_of_compounds_from_dwsim_database_used_in_process_flowsheet'],
         ":proposal_id" => $proposal_id,
       ];
-      $submitted_proposal_id = \Drupal::database()->query($query, $args, $query);
+      $submitted_proposal_id = \Drupal::database()->query($query, $args);
     } //$proposal_data
     $proposal_id = $proposal_data->id;
     $query_s = "SELECT * FROM {dwsim_flowsheet_submitted_abstracts} WHERE proposal_id = :proposal_id";
@@ -648,7 +648,8 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
         ":abstract_approval_date" => 0,
         ":is_submitted" => 0,
       ];
-      $submitted_abstract_id = \Drupal::database()->query($query, $args, $query);
+     \Drupal::database()->query($query, $args);
+     $submitted_abstract_id = \Drupal::database()->lastInsertId();
       \Drupal::messenger()->addStatus('Abstract uploaded successfully.');
     } //!$query_s_result
     else {
@@ -668,9 +669,11 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
         ":is_submitted" => 0,
         ":proposal_id" => $proposal_id,
       ];
-      $submitted_abstract_id = \Drupal::database()->query($query, $args, $query);
+      \Drupal::database()->query($query, $args);
+      // var_dump($submitted_abstract_id);die;
       \Drupal::messenger()->addStatus('Abstract updated successfully.');
     }
+    // var_dump($submitted_abstract_id);die;
     // For editing user defiend compounds
     $user_defined_compoundupload = 0;
     for ($i = 0; $i <= $v['user_defined_compound_fieldset']["user_defined_compound_count"]; $i++) {
@@ -756,7 +759,7 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
                   $args = [
                     ":submitted_abstract_id" => $submitted_abstract_id,
                     ":proposal_id" => $proposal_id,
-                    ":uid" => $user->uid,
+                    ":uid" => $user_id_int,
                     ":approvar_uid" => 0,
                     ":filename" => $_FILES['files']['name'][$file_form_name],
                     ":filepath" => $_FILES['files']['name'][$file_form_name],
@@ -809,22 +812,23 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
                   ":filetype" => $file_type,
                 ];
                 $query_ab_f_result = \Drupal::database()->query($query_ab_f, $args_ab_f)->fetchObject();
+           
                 if (!$query_ab_f_result) {
                   $query = "INSERT INTO {dwsim_flowsheet_submitted_abstracts_file} (submitted_abstract_id, proposal_id, uid, approvar_uid, filename, filepath, filemime, filesize, filetype, timestamp)
           VALUES (:submitted_abstract_id, :proposal_id, :uid, :approvar_uid, :filename, :filepath, :filemime, :filesize, :filetype, :timestamp)";
                   $args = [
                     ":submitted_abstract_id" => $submitted_abstract_id,
                     ":proposal_id" => $proposal_id,
-                    ":uid" => $user->uid,
+                    ":uid" => $user_id_int,
                     ":approvar_uid" => 0,
                     ":filename" => $_FILES['files']['name'][$file_form_name],
                     ":filepath" => $_FILES['files']['name'][$file_form_name],
                     ":filemime" => mime_content_type($root_path . $dest_path . $_FILES['files']['name'][$file_form_name]),
                     ":filesize" => $_FILES['files']['size'][$file_form_name],
                     ":filetype" => $file_type,
-                    ":timestamp" => time(),
+                    ":timestamp" => time()
                   ];
-                  \Drupal::database()->query($query, $args);
+                 \Drupal::database()->query($query, $args);
                   \Drupal::messenger()->addStatus($file_name . ' uploaded successfully.');
                 } //!$query_ab_f_result
                 else {
@@ -895,7 +899,7 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
     $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
     $params['abstract_uploaded']['proposal_id'] = $proposal_id;
     $params['abstract_uploaded']['submitted_abstract_id'] = $submitted_abstract_id;
-    $params['abstract_uploaded']['user_id'] = $user->uid;
+    $params['abstract_uploaded']['user_id'] = $user->id();
     $params['abstract_uploaded']['headers'] = [
       'From' => $from,
       'MIME-Version' => '1.0',
@@ -905,9 +909,9 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
       'Cc' => $cc,
       'Bcc' => $bcc,
     ];
-    if (!drupal_mail('dwsim_flowsheet', 'abstract_uploaded', $email_to, language_default(), $params, $from, TRUE)) {
-      \Drupal::messenger()->addError('Error sending email message.');
-    }
+    // if (!drupal_mail('dwsim_flowsheet', 'abstract_uploaded', $email_to, language_default(), $params, $from, TRUE)) {
+    //   \Drupal::messenger()->addError('Error sending email message.');
+    // }
     // drupal_goto('flowsheeting-project/abstract-code');
     $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
     // Send the redirect response

@@ -19,7 +19,6 @@ dwsim_flowsheet.proposal_pending:
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_proposal_pending'
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
-
 dwsim_flowsheet.proposal_all:
   path: /flowsheeting-project/manage-proposal/all
   defaults:
@@ -63,7 +62,7 @@ dwsim_flowsheet.proposal_edit_form:
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
 dwsim_flowsheet.proposal_status_form:
-  path: /flowsheeting-project/manage-proposal/status
+  path: /flowsheeting-project/manage-proposal/status/{id?}
   defaults:
     _title: 'Proposal Status'
     _form: \Drupal\dwsim_flowsheet\Form\DwsimFlowsheetProposalStatusForm
@@ -175,7 +174,7 @@ dwsim_flowsheet.run_form:
   requirements:
     _permission: 'dwsim flowsheet download code'
 dwsim_flowsheet.download_user_defined_compound:
-  path: /flowsheeting-project/download/user-defined-compound-file
+  path: /flowsheeting-project/download/user-defined-compound-file/{proposal_id?}
   defaults:
     _title: 'Download user defined compound file'
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_download_user_defined_compound'
