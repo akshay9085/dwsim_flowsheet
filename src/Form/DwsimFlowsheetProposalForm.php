@@ -20,6 +20,7 @@ use Drupal\Core\StringTranslation\StringTranslationTrait;
 use Drupal\Core\Database\Database;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\Core\Mail\MailManager;
+use Drupal\user\Entity\User;
 
 class DwsimFlowsheetProposalForm extends FormBase {
 
@@ -51,22 +52,26 @@ class DwsimFlowsheetProposalForm extends FormBase {
     } //$user->uid == 0
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
-    $query->condition('uid', $user->id());
+    $query->condition('uid', $user->id(1));
     $query->orderBy('id', 'DESC');
     $query->range(0, 1);
     $proposal_q = $query->execute();
     $proposal_data = $proposal_q->fetchObject();
     if ($proposal_data) {
       if ($proposal_data->approval_status == 0 || $proposal_data->approval_status == 1) {
-        \Drupal::messenger()->addStatus(t('We have already received your proposal.'));
+       \Drupal::messenger()->addStatus(t('We have already received your proposal.'));
         $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
   
   // Send the redirect response
-  $response->send();
+//  $response->send();
         // drupal_goto('');
-        return;
+      
+        return $response;
+       
       } //$proposal_data->approval_status == 0 || $proposal_data->approval_status == 1
     } //$proposal_data
+    var_dump($proposal_q);die;
+
     $imp = t('<span style="color: red;">*This is a mandatory field</span>');
     $form['#attributes'] = ['enctype' => "multipart/form-data"];
     $form['name_title'] = [
@@ -355,83 +360,69 @@ Ex: 64-17-5'),
 	)
 	)
 	);*/
-    $form['upload_u_compound'] = [
-      '#type' => 'fieldset',
-      '#title' => t('Upload user defind compound'),
-      '#collapsible' => FALSE,
-      '#collapsed' => FALSE,
-      '#states' => [
+
+  $fieldset_count = $form_state->get('fieldset_count') ?? 1;
+  
+  // Fieldsets wrapper.
+  $form['fieldsets'] = [
+    '#type' => 'container',
+    '#prefix' => '<div id="fieldsets-wrapper">',
+    '#suffix' => '</div>',
+    '#states' => [
         'visible' => [
           ':input[name="ucompound"]' => [
             'checked' => TRUE
             ]
           ]
         ],
-    ];
-    $form['upload_u_compound']['udc_field1_fieldset'] = [
+  ];
+
+  // Generate the fieldsets with two textfields each.
+  for ($i = 0; $i < $fieldset_count; $i++) {
+    $form['fieldsets'][$i] = [
       '#type' => 'fieldset',
-      '#tree' => TRUE,
-      '#prefix' => '<div id="udc-field1-fieldset-wrapper">',
-      '#suffix' => '</div>',
-      '#states' => [
-        'visible' => [
-          ':input[name="ucompound"]' => [
-            'checked' => TRUE
-            ]
-          ]
-        ],
+      '#title' => $this->t('Compound @num', ['@num' => $i + 1]),
     ];
-    if (!$form_state->get(['user_defined_compound_num'])) {
-      $form_state->set(['user_defined_compound_num'], 1);
-    } //empty($form_state['user_defined_compound_num'])
-    $udc_temp1 = 0;
-    for ($udc_i = 0; $udc_i < $form_state->get(['user_defined_compound_num']); $udc_i++) {
-      $udc_temp1 = $udc_i;
-      $form['upload_u_compound']['udc_field1_fieldset'][$udc_i]["compound"] = [
-        "#type" => "textfield",
-        "#title" => "Name of User defined compound " . ($udc_temp1 + 1),
-        "#default_value" => "",
-      ];
-      $form['upload_u_compound']['udc_field1_fieldset'][$udc_i]["cas_no"] = [
-        "#type" => "textfield",
-        "#title" => "CAS Number of User defined compound " . ($udc_temp1 + 1),
-        "#default_value" => "",
-      ];
-    } //$i = 0; $i < $form_state['step1_num_compound']; $i++
-    $form['upload_u_compound']['udc_field1_fieldset']["udc_compound_count"] = [
-      "#type" => "hidden",
-      "#value" => $udc_temp1,
+    $form['fieldsets'][$i]["compound"] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Name of User defined compound  @num', ['@num' => $i + 1]),
+      '#default_value' => $form_state->get(['fieldsets', $i, 'field1']) ?? '',
     ];
-    $form['upload_u_compound']['udc_field1_fieldset']['add_compound'] = [
-      '#type' => 'submit',
-      '#value' => t('Add more compound'),
-      '#limit_validation_errors' => [],
-      '#submit' => [
-        'udc_compound_add_more_add_one'
-        ],
-      '#ajax' => [
-        'callback' => '::udc_compound_add_more_callback',
-        'wrapper' => [
-          'udc-field1-fieldset-wrapper'
-          ],
-      ],
+    $form['fieldsets'][$i]["cas_no"] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('CAS Number of User defined compound @num', ['@num' => $i + 1]),
+      
+      '#default_value' => $form_state->get(['fieldsets', $i, 'field2']) ?? '',
     ];
-    if ($form_state->get(['user_defined_compound_num']) > 1) {
-      $form['upload_u_compound']['udc_field1_fieldset']['remove_compound'] = [
-        '#type' => 'submit',
-        '#value' => t('Remove compound'),
-        '#limit_validation_errors' => [],
-        '#submit' => [
-          'udc_compound_add_more_remove_one'
-          ],
-        '#ajax' => [
-          'callback' => '::udc_compound_add_more_callback',
-          'wrapper' => [
-            'udc-field1-fieldset-wrapper'
-            ],
-        ],
-      ];
-    } //$form_state['step1_num_compound'] > 1
+  }
+
+  // "Add More" button.
+  $form['fieldsets'][$i]['add_more'] = [
+    '#type' => 'button',
+    '#value' => $this->t('Add More'),
+   
+    '#limit_validation_errors' => [],
+    '#ajax' => [
+      'callback' => '::updateFieldsets',
+      'wrapper' => 'fieldsets-wrapper',
+    ],
+    '#submit' =>[[$this, 'addMoreFieldsets']],
+  ];
+  //Remove button
+  $form['fieldsets'][$i]['remove'] = [
+    '#type' => 'button',
+    '#value' => $this->t('remove'),
+   
+    '#limit_validation_errors' => [],
+    '#ajax' => [
+      'callback' => '::updateFieldsets',
+      'wrapper' => 'fieldsets-wrapper',
+    ],
+    '#submit' => [[$this,'removeFieldsets']],
+  ];
+
+
+    
     if ($no_js_use) {
       if (!empty($form['upload_u_compound']['udc_field1_fieldset']['remove_compound']['#ajax'])) {
         unset($form['upload_u_compound']['udc_field1_fieldset']['remove_compound']['#ajax']);
@@ -461,27 +452,32 @@ Ex: 64-17-5'),
     $form['submit'] = [
       '#type' => 'submit',
       '#value' => t('Submit'),
+      '#submit' => [[$this, 'submitForm']],
+      // '#limit_validation_errors' => [],
     ];
     return $form;
   }
-  public function udc_compound_add_more_add_one($form, &$form_state)
-  {
-    $form_state['user_defined_compound_num']++;
-    $form_state['rebuild'] = TRUE;
-    //$form_state['no_redirect'] = TRUE;
-  }
-  public function udc_compound_add_more_remove_one($form, &$form_state)
-  {
-    if ($form_state['user_defined_compound_num'] > 1)
-    {
-      $form_state['user_defined_compound_num']--;
-    } //$form_state['user_defined_compound_num'] > 1
-    $form_state['rebuild'] = TRUE;
-  }
-  public function udc_compound_add_more_callback($form, &$form_state)
-  {
-    return $form['upload_u_compound']['udc_field1_fieldset'];
-  }
+
+ /**AJAX callback to update the fieldsets. */
+    public function updateFieldsets(array &$form, FormStateInterface $form_state) {
+      return $form['fieldsets'];
+    }
+  
+    /** Submit handler for the "Add More" button.*/
+    public function addMoreFieldsets(array &$form, FormStateInterface $form_state) {
+      $fieldset_count = $form_state->get('fieldset_count') ?? 1;
+      $form_state->set('fieldset_count', $fieldset_count + 1);
+      $form_state->setRebuild(TRUE);
+    }
+    public function removeFieldsets(array &$form, FormStateInterface $form_state) {
+      $fieldset_count = $form_state->get('fieldset_count') ?? 1;
+      if ($fieldset_count > 1) {
+      $form_state->set('fieldset_count', $fieldset_count - 1);
+      }
+      $form_state->setRebuild(TRUE);
+    }
+
+ 
   public function validateForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $project_title = $form_state->getValue(['project_title']);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
@@ -497,16 +493,7 @@ Ex: 64-17-5'),
       $form_state->setErrorByName('project_title', t('Project title name already exists'));
       return;
     }
-    /*$query = db_select('dwsim_flowsheet_proposal');
-	$query->fields('dwsim_flowsheet_proposal');
-	$query->condition('project_title', $project_title);
-	$query->condition('approval_status',3); 
-	$result1 = $query->execute()->rowCount();
-	if ($result1 > 0)
-	{
-		form_set_error('project_title', t('Project title name already exists'));
-		return;
-	}*/
+
     if ($form_state->getValue(['term_condition']) == '1') {
       $form_state->setErrorByName('term_condition', t('Please check the terms and conditions'));
       // $form_state['values']['country'] = $form_state['values']['other_country'];
@@ -865,9 +852,7 @@ $proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->ex
     if (!\Drupal::service('plugin.manager.mail')->mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, 'en', $params, $form, TRUE)) {
       \Drupal::messenger()->addError('Error sending email message.');
     }
-    // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_received', $email_to, user_preferred_language($user), $params, $form, TRUE)) {
-    //   \Drupal::messenger()->addError('Error sending email message.');
-    // }
+    
 
     // drupal_goto('');
     $response = new RedirectResponse(Url::fromRoute('<front>')->toString());
@@ -875,11 +860,13 @@ $proposal_id= $connection->insert('dwsim_flowsheet_proposal')->fields($args)->ex
     $response->send();
     \Drupal::messenger()->addStatus(t('We have received your DWSIM Flowsheeting proposal. We will get back to you soon.'));
   }
+
+  
   //to remove day from date eg.2024-10-24 to 2024-10
   public function removeDayFromDate($date) {
     $date_parts = explode('-', $date);
+    
     if (count($date_parts) === 3) {
-      
         return $date_parts[0] . '-' . $date_parts[1];
     }
  

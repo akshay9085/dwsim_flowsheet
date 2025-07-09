@@ -96,7 +96,7 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
     $form['student_email_id'] = [
       '#title' => t('Student Email'),
       '#type' => 'item',
-      '#markup' => \Drupal\user\Entity\User::load($proposal_data->uid)->getEmail(),
+      '#markup' => \Drupal::entityTypeManager()->getStorage('user')->load($proposal_data->uid)->getEmail(),
       '#title' => t('Email'),
     ];
     $form['contributor_contact_no'] = [

@@ -36,30 +36,16 @@ class DefaultController extends ControllerBase {
     $pending_q = $query->execute();
     while ($pending_data = $pending_q->fetchObject()) {
 
-// $pending_rows[$pending_data->id] = array(
-//   date('d-m-Y', $pending_data->creation_date),
-  
-//   $pending_data->project_title,
-//   Link::fromTextAndUrl(
-//     'Approve',
-//     Url::fromRoute('dwsim_flowsheet.proposal_approval_form', ['id' => $pending_data->id])
-//   )->toString() . ' | ' . Link::fromTextAndUrl(
-//     'Edit',
-//     Url::fromRoute('dwsim_flowsheet.manage_proposal_edit', ['id' => $pending_data->id])
-//   )->toString()
-// );
+
 
 $approval_url = Link::fromTextAndUrl('Approve', Url::fromRoute('dwsim_flowsheet.proposal_approval_form',['id'=>$pending_data->id]))->toString();
 $edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$pending_data->id]))->toString();
 $mainLink = t('@linkApprove | @linkReject', array('@linkApprove' => $approval_url, '@linkReject' => $edit_url));
+
 $pending_rows[$pending_data->id] = [
   date('d-m-Y', $pending_data->creation_date),
   
- // Create the link with the user's name as the link text.
-//  Link::fromTextAndUrl(
-//   $pending_data->name_title . ' ' . $pending_data->contributor_name,
-//   Url::fromRoute('entity.user.canonical', ['user' => $pending_data->uid])
-// )->toString(),
+
  Link::fromTextAndUrl($pending_data->contributor_name, Url::fromRoute('entity.user.canonical', ['user' => $pending_data->uid])),
 
 
@@ -70,10 +56,7 @@ $pending_rows[$pending_data->id] = [
 
 
   
-  // Link::fromTextAndUrl('Approve', Url::fromRoute('lab_migration.manage_proposal_approve', ['id' => $pending_data->id]))
-  // ->toString() . ' | ' . 
-  // Link::fromTextAndUrl('Edit', Url::fromRoute('lab_migration.proposal_edit_form', ['id' => $pending_data->id]))->toString()
-  // Link::fromTextAndUrl('Approve', 'lab_migration_manage_proposal_approve' . $pending_data->id) . ' | ' . Link::fromTextAndUrl('Edit', 'lab-migration/manage-proposal/edit/' . $pending_data->id),
+  
 ];
     } //$pending_data = $pending_q->fetchObject()
 	/* check if there are any pending proposals */
@@ -93,19 +76,7 @@ $pending_rows[$pending_data->id] = [
       '#rows' => $pending_rows,
       //'#empty' => 'no rows found',
     ];
-    //$output = theme_table($pending_header, $pending_rows);
-    // @FIXME
-    // theme() has been renamed to _theme() and should NEVER be called directly.
-    // Calling _theme() directly can alter the expected output and potentially
-    // introduce security issues (see https://www.drupal.org/node/2195739). You
-    // should use renderable arrays instead.
-    // 
-    // 
-    // @see https://www.drupal.org/node/2195739
-    // $output = theme('table', array(
-    // 		'header' => $pending_header,
-    // 		'rows' => $pending_rows
-    // 	));
+  
 
     return $output;
   }
@@ -143,35 +114,6 @@ $pending_rows[$pending_data->id] = [
       else {
         $actual_completion_date = date('d-m-Y', $proposal_data->actual_completion_date);
       }
-      // @FIXME
-      // l() expects a Url object, created from a route name or external URI.
-      // $proposal_rows[] = array(
-      // 			date('d-m-Y', $proposal_data->creation_date),
-      // 			l($proposal_data->contributor_name, 'user/' . $proposal_data->uid),
-      // 			$proposal_data->project_title,
-      // 			$actual_completion_date,
-      // 			$approval_status,
-      // 			l('Status', 'flowsheeting-project/manage-proposal/status/' . $proposal_data->id) . ' | ' . l('Edit', 'flowsheeting-project/manage-proposal/edit/' . $proposal_data->id)
-      // 		);
-    //   $proposal_rows[] = array(
-    //     date('d-m-Y', $proposal_data->creation_date),
-    //     Link::fromTextAndUrl(
-    //         $proposal_data->contributor_name,
-    //         Url::fromUserInput('/user/' . $proposal_data->uid)
-    //     )->toString(),
-    //     $proposal_data->project_title,
-    //     $actual_completion_date,
-    //     $approval_status,
-    //     Link::fromTextAndUrl(
-    //         'Status',
-    //         Url::fromUserInput('/flowsheeting-project/manage-proposal/status/' . $proposal_data->id)
-    //     )->toString() . ' | ' .
-    //     Link::fromTextAndUrl(
-    //         'Edit',
-    //         Url::fromUserInput('/flowsheeting-project/manage-proposal/edit/' . $proposal_data->id)
-    //     )->toString()
-    // );
-    // } //$proposal_data = $proposal_q->fetchObject()
 
     $status_url = Link::fromTextAndUrl('Status', Url::fromRoute('dwsim_flowsheet.proposal_status_form',['id'=>$proposal_data->id]))->toString();
     $edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$proposal_data->id]))->toString();
@@ -209,18 +151,7 @@ $pending_rows[$pending_data->id] = [
       'Action',
     ];
 
-    // @FIXME
-    // theme() has been renamed to _theme() and should NEVER be called directly.
-    // Calling _theme() directly can alter the expected output and potentially
-    // introduce security issues (see https://www.drupal.org/node/2195739). You
-    // should use renderable arrays instead.
-    // 
-    // 
-    // @see https://www.drupal.org/node/2195739
-    // $output = theme('table', array(
-    // 		'header' => $proposal_header,
-    // 		'rows' => $proposal_rows
-    // 	));
+   
  $output = [
         '#type' => 'table',
         '#header' => $proposal_header,
@@ -337,6 +268,7 @@ $pending_rows[$pending_data->id] = [
     $return_html = "";
     $proposal_data = dwsim_flowsheet_get_proposal();
     if (!$proposal_data) {
+      
       // drupal_goto('');
       return;
     } //!$proposal_data
@@ -1033,7 +965,7 @@ public function dwsim_flowsheet_completed_proposals_all() {
     $query->fields('dwsim_flowsheet_proposal');
     $query->condition('approval_status', 1);
     $query->condition('is_completed', 0);
-    $query->orderBy('approval_date', DESC);
+    $query->orderBy('approval_date', 'DESC');
     $result = $query->execute();
     $records = $result->fetchAll();
     if (count($records) == 0) {

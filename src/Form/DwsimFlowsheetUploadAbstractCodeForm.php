@@ -42,28 +42,29 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
     $query->condition('uid', $uid);
     $query->condition('approval_status', '1');
     $proposal_q = $query->execute();
-    if ($proposal_q) {
-      if ($proposal_data = $proposal_q->fetchObject()) {
-        /* everything ok */
-      } //$proposal_data = $proposal_q->fetchObject()
-      else {
-        \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-        $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
-    // Send the redirect response
-    $response->send();
-        // drupal_goto('flowsheeting-project/abstract-code');
-        return;
-      }
-    } //$proposal_q
-    else {
-      \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-    
-      $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
-  // Send the redirect response
-  $response->send();
-      // drupal_goto('flowsheeting-project/abstract-code');
-      return;
-    }
+  //   if ($proposal_q) {
+  //     if ($proposal_data = $proposal_q->fetchObject()) {
+  //       /* everything ok */
+  //     } //$proposal_data = $proposal_q->fetchObject()
+  //     else {
+  //       \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
+  //       // $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+  //       $response = new RedirectResponse(Url::fromUri('internal:/flowsheeting-project/abstract-code')->toString());
+  //   // Send the redirect response
+  //   $response->send();
+  //       // drupal_goto('flowsheeting-project/abstract-code');
+  //       return;
+  //     }
+  //   } //$proposal_q
+  //   else {
+  //     \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
+  //     $response = new RedirectResponse(Url::fromUri('internal:/flowsheeting-project/abstract-code')->toString());
+  //     // $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.upload_abstract_code_form')->toString());
+  // // Send the redirect response
+  // $response->send();
+  //     // drupal_goto('flowsheeting-project/abstract-code');
+  //     return;
+  //   }
     $query = \Drupal::database()->select('dwsim_flowsheet_submitted_abstracts');
     $query->fields('dwsim_flowsheet_submitted_abstracts');
     $query->condition('proposal_id', $proposal_data->id);
@@ -673,7 +674,6 @@ function default_value_for_uploaded_files($filetype, $proposal_id) {
       // var_dump($submitted_abstract_id);die;
       \Drupal::messenger()->addStatus('Abstract updated successfully.');
     }
-    // var_dump($submitted_abstract_id);die;
     // For editing user defiend compounds
     $user_defined_compoundupload = 0;
     for ($i = 0; $i <= $v['user_defined_compound_fieldset']["user_defined_compound_count"]; $i++) {

@@ -20,6 +20,18 @@ class DwsimFlowsheetSettingsForm extends FormBase {
     return 'dwsim_flowsheet_settings_form';
   }
 
+
+  //   public function submitForm(array &$form, FormStateInterface $form_state) {
+  //     // $fieldsets = $form_state->getValue('fieldsets');
+  //     // foreach ($fieldsets as $index => $fieldset) {
+  //     //   $this->messenger()->addMessage($this->t('Fieldset @num: Textfield 1 = @field1, Textfield 2 = @field2', [
+  //     //     '@num' => $index + 1,
+  //     //     '@field1' => $fieldset['field1'],
+  //     //     '@field2' => $fieldset['field2'],
+  //     //   ]));
+  //     // }
+  //   }
+  // }
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $form['emails'] = [
       '#type' => 'textfield',

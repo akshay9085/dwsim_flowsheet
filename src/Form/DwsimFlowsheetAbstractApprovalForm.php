@@ -21,7 +21,9 @@ class DwsimFlowsheetAbstractApprovalForm extends FormBase {
   }
 
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
-    $solution_id = (int) arg(3);
+    $route_match = \Drupal::routeMatch();
+
+    $solution_id = (int) $route_match->getParameter('solution_id');
     /* get solution details */
     //$solution_q = db_query("SELECT * FROM {lab_migration_solution} WHERE id = %d", $solution_id);
     $query = \Drupal::database()->select('lab_migration_solution');

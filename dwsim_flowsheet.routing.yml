@@ -55,7 +55,7 @@ dwsim_flowsheet.proposal_approval_form:
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
 dwsim_flowsheet.proposal_edit_form:
-  path: /flowsheeting-project/manage-proposal/edit
+  path: /flowsheeting-project/manage-proposal/edit/{proposal_id}
   defaults:
     _title: 'Edit Proposal'
     _form: \Drupal\dwsim_flowsheet\Form\DwsimFlowsheetProposalEditForm
