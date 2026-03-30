@@ -19,6 +19,8 @@ dwsim_flowsheet.proposal_pending:
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_proposal_pending'
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
+  options:
+    no_cache: TRUE
 dwsim_flowsheet.proposal_all:
   path: /flowsheeting-project/manage-proposal/all
   defaults:
@@ -26,6 +28,8 @@ dwsim_flowsheet.proposal_all:
     _controller: '\Drupal\dwsim_flowsheet\Controller\DefaultController::dwsim_flowsheet_proposal_all'
   requirements:
     _permission: 'dwsim flowsheet manage proposal'
+  options:
+    no_cache: TRUE
 dwsim_flowsheet.approved_tab:
   path: /flowsheeting-project/manage-proposal/approved_proposals
   defaults:
