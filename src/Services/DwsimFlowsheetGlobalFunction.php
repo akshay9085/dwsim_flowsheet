@@ -101,26 +101,35 @@ function dwsim_flowsheet_path()
 function dwsim_flowsheet_get_proposal()
 {
 	$user = \Drupal::currentUser();
-	//$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE solution_provider_uid = ".$user->uid." AND solution_status = 2 ORDER BY id DESC LIMIT 1");
 	$query = \Drupal::database()->select('dwsim_flowsheet_proposal');
 	$query->fields('dwsim_flowsheet_proposal');
-	$query->condition('uid', $user->uid);
+	$query->condition('uid', $user->id());
+	$query->condition('approval_status', 1);
 	$query->orderBy('id', 'DESC');
 	$query->range(0, 1);
-	$proposal_q = $query->execute();
-	$proposal_data = $proposal_q->fetchObject();
-	if (!$proposal_data)
+	$proposal_data = $query->execute()->fetchObject();
+	if ($proposal_data)
+	{
+		return $proposal_data;
+	}
+
+	$status_query = \Drupal::database()->select('dwsim_flowsheet_proposal');
+	$status_query->fields('dwsim_flowsheet_proposal');
+	$status_query->condition('uid', $user->id());
+	$status_query->orderBy('id', 'DESC');
+	$status_query->range(0, 1);
+	$latest_proposal = $status_query->execute()->fetchObject();
+	if (!$latest_proposal)
 	{
 		\Drupal::messenger()->addError("You do not have any approved DWSIM Flowsheet proposal. Please propose the flowsheet proposal");
-		// drupal_goto('');
-	} //!$proposal_data
-	switch ($proposal_data->approval_status)
+		return FALSE;
+	}
+
+	switch ($latest_proposal->approval_status)
 	{
 		case 0:
 			\Drupal::messenger()->addStatus(t('Proposal is awaiting approval.'));
 			return FALSE;
-		case 1:
-			return $proposal_data;
 		case 2:
 			\Drupal::messenger()->addError(t('Proposal has been dis-approved.'));
 			return FALSE;
@@ -128,10 +137,9 @@ function dwsim_flowsheet_get_proposal()
 			\Drupal::messenger()->addStatus(t('Proposal has been marked as completed.'));
 			return FALSE;
 		default:
-			\Drupal::messenger()->addError(t('Invalid proposal state. Please contact site administrator for further information.'));
+			\Drupal::messenger()->addError(t('You do not have any approved DWSIM Flowsheet proposal. Please propose the flowsheet proposal.'));
 			return FALSE;
-	} //$proposal_data->approval_status
-	return FALSE;
+	}
 }
 /*************************************************************************/
 /***** Function To convert only first charater of string in uppercase ****/

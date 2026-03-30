@@ -115,6 +115,7 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
     $user = \Drupal::currentUser();
     $msg = '';
     $root_path = dwsim_flowsheet_document_path();
+    $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
     if ($form_state->get(['clicked_button', '#value']) == 'Submit') {
       if ($form_state->getValue(['flowsheet_project']))
         // dwsim_flowsheet_abstract_del_lab_pdf($form_state['values']['flowsheet_project']);
@@ -188,8 +189,8 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
             $from = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
             $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
             $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
-            $params['standard']['subject'] = $email_subject;
-            $params['standard']['body'] = $email_body;
+            $params['standard']['subject'] = $email_subject ?? NULL;
+            $params['standard']['body'] = $email_body ?? NULL;
             $params['standard']['headers'] = [
               'From' => $from,
               'MIME-Version' => '1.0',
@@ -199,9 +200,18 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
               'Cc' => $cc,
               'Bcc' => $bcc,
             ];
-            if (!drupal_mail('dwsim_flowsheet', 'standard', $email_to, language_default(), $params, $from, TRUE)) {
+            $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+              'dwsim_flowsheet',
+              'standard',
+              $email_to,
+              $langcode,
+              $params,
+              $from,
+              TRUE
+            );
+            if (empty($mail_result['result'])) {
               $msg = \Drupal::messenger()->addError('Error sending email message.');
-            } //!drupal_mail('dwsim_flowsheet', 'standard', $email_to, language_default(), $params, $from, TRUE)
+            }
           } //$form_state['values']['flowsheet_actions'] == 1
           elseif ($form_state->getValue(['flowsheet_actions']) == 2) {
             //pending review entire project 
@@ -257,8 +267,8 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
             $from = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
             $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
             $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
-            $params['standard']['subject'] = $email_subject;
-            $params['standard']['body'] = $email_body;
+            $params['standard']['subject'] = $email_subject ?? NULL;
+            $params['standard']['body'] = $email_body ?? NULL;
             $params['standard']['headers'] = [
               'From' => $from,
               'MIME-Version' => '1.0',
@@ -268,9 +278,18 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
               'Cc' => $cc,
               'Bcc' => $bcc,
             ];
-            if (!drupal_mail('dwsim_flowsheet', 'standard', $email_to, language_default(), $params, $from, TRUE)) {
+            $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+              'dwsim_flowsheet',
+              'standard',
+              $email_to,
+              $langcode,
+              $params,
+              $from,
+              TRUE
+            );
+            if (empty($mail_result['result'])) {
               \Drupal::messenger()->addError('Error sending email message.');
-            } //!drupal_mail('dwsim_flowsheet', 'standard', $email_to, language_default(), $params, $from, TRUE)
+            }
           } //$form_state['values']['flowsheet_actions'] == 2
           elseif ($form_state->getValue(['flowsheet_actions']) == 3) //disapprove and delete entire flowsheeting project
  {
@@ -323,8 +342,8 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
               $from = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
               $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
               $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
-              $params['standard']['subject'] = $email_subject;
-              $params['standard']['body'] = $email_body;
+              $params['standard']['subject'] = $email_subject ?? NULL;
+              $params['standard']['body'] = $email_body ?? NULL;
               $params['standard']['headers'] = [
                 'From' => $from,
                 'MIME-Version' => '1.0',
@@ -334,7 +353,16 @@ class DwsimFlowsheetAbstractBulkApprovalForm extends FormBase {
                 'Cc' => $cc,
                 'Bcc' => $bcc,
               ];
-              if (!drupal_mail('dwsim_flowsheet', 'standard', $email_to, language_default(), $params, $from, TRUE)) {
+              $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+                'dwsim_flowsheet',
+                'standard',
+                $email_to,
+                $langcode,
+                $params,
+                $from,
+                TRUE
+              );
+              if (empty($mail_result['result'])) {
                 \Drupal::messenger()->addError('Error sending email message.');
               }
             } //dwsim_flowsheet_abstract_delete_project($form_state['values']['flowsheet_project'])

@@ -263,12 +263,14 @@ $form['process_development_compound_name']['table'] = $page_content;
       '#type' => 'submit',
       '#value' => t('Submit'),
     ];
-    // @FIXME
-    // l() expects a Url object, created from a route name or external URI.
-    // $form['cancel'] = array(
-    // 		'#type' => 'item',
-    // 		'#markup' => l(t('Cancel'), 'flowsheeting-project/manage-proposal')
-    // 	);
+    $url = Url::fromUserInput('/flowsheeting-project/manage-proposal/pending');
+// Or, if you have a route name (better):
+// $url = Url::fromRoute('flowsheeting_project.manage_proposal');
+
+$form['cancel'] = [
+  '#type'  => 'item',
+  '#markup'=> Link::fromTextAndUrl(t('Cancel'), $url)->toString(),
+];
 
     return $form;
   }
@@ -339,9 +341,19 @@ $form['process_development_compound_name']['table'] = $page_content;
         'Cc' => $cc,
         'Bcc' => $bcc,
       ];
-      // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_approved', $email_to, language_default(), $params, $from, TRUE)) {
-      //   \Drupal::messenger()->addError('Error sending email message.');
-      // }
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+        'dwsim_flowsheet',
+        'dwsim_flowsheet_proposal_approved',
+        $email_to,
+        $langcode,
+        $params,
+        $from,
+        TRUE
+      );
+      if (empty($mail_result['result'])) {
+        \Drupal::messenger()->addError('Error sending email message.');
+      }
       \Drupal::messenger()->addStatus('DWSIM flowsheeting proposal No. ' . $proposal_id . ' approved. User has been notified of the approval.');
       // drupal_goto('flowsheeting-project/manage-proposal');
       $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
@@ -367,6 +379,7 @@ $form['process_development_compound_name']['table'] = $page_content;
         $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
         $params['dwsim_flowsheet_proposal_disapproved']['proposal_id'] = $proposal_id;
         $params['dwsim_flowsheet_proposal_disapproved']['user_id'] = $proposal_data->uid;
+        $params['dwsim_flowsheet_proposal_disapproved']['reason'] = $form_state->getValue(['message']);
         $params['dwsim_flowsheet_proposal_disapproved']['headers'] = [
           'From' => $from,
           'MIME-Version' => '1.0',
@@ -376,9 +389,19 @@ $form['process_development_compound_name']['table'] = $page_content;
           'Cc' => $cc,
           'Bcc' => $bcc,
         ];
-        // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_disapproved', $email_to, language_default(), $params, $from, TRUE)) {
-        //   \Drupal::messenger()->addError('Error sending email message.');
-        // }
+        $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+        $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+          'dwsim_flowsheet',
+          'dwsim_flowsheet_proposal_disapproved',
+          $email_to,
+          $langcode,
+          $params,
+          $from,
+          TRUE
+        );
+        if (empty($mail_result['result'])) {
+          \Drupal::messenger()->addError('Error sending email message.');
+        }
         \Drupal::messenger()->addError('DWSIM flowsheeting proposal No. ' . $proposal_id . ' dis-approved. User has been notified of the dis-approval.');
         // drupal_goto('flowsheeting-project/manage-proposal');
         $response = new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());

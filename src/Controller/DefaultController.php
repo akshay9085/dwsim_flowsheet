@@ -39,7 +39,7 @@ class DefaultController extends ControllerBase {
 
 
 $approval_url = Link::fromTextAndUrl('Approve', Url::fromRoute('dwsim_flowsheet.proposal_approval_form',['id'=>$pending_data->id]))->toString();
-$edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$pending_data->id]))->toString();
+$edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form', ['proposal_id' => $pending_data->id]))->toString();
 $mainLink = t('@linkApprove | @linkReject', array('@linkApprove' => $approval_url, '@linkReject' => $edit_url));
 
 $pending_rows[$pending_data->id] = [
@@ -116,7 +116,7 @@ $pending_rows[$pending_data->id] = [
       }
 
     $status_url = Link::fromTextAndUrl('Status', Url::fromRoute('dwsim_flowsheet.proposal_status_form',['id'=>$proposal_data->id]))->toString();
-    $edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form',['id'=>$proposal_data->id]))->toString();
+    $edit_url =  Link::fromTextAndUrl('Edit', Url::fromRoute('dwsim_flowsheet.proposal_edit_form', ['proposal_id' => $proposal_data->id]))->toString();
     $mainLink = t('@linkApprove | @linkReject', array('@linkApprove' => $status_url, '@linkReject' => $edit_url));
     
       $proposal_rows[] = array(
@@ -959,7 +959,7 @@ public function dwsim_flowsheet_completed_proposals_all() {
     return $build;
 }
 
-  public function dwsim_flowsheet_progress_all() {
+public function dwsim_flowsheet_progress_all() {
     $page_content = [];
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');

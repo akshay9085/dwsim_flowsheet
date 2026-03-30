@@ -6,14 +6,6 @@ dwsim_flowsheet.proposal_pending_0:
   route_name: dwsim_flowsheet.proposal_pending
   title: 'Manage Flowsheet Proposals'
   description: 'Manage Flowsheet Proposals'
-dwsim_flowsheet.proposal_approval_form:
-  route_name: dwsim_flowsheet.proposal_approval_form
-  title: 'Approve Proposal'
-  description: 'Approve Proposal'
-dwsim_flowsheet.proposal_edit_form:
-  route_name: dwsim_flowsheet.proposal_edit_form
-  title: 'Edit Proposal'
-  description: 'Edit Proposal'
 dwsim_flowsheet.proposal_status_form:
   route_name: dwsim_flowsheet.proposal_status_form
   title: 'Proposal Status'
@@ -26,10 +18,6 @@ dwsim_flowsheet.download_solution_file:
   route_name: dwsim_flowsheet.download_solution_file
   title: 'Code Download'
   description: 'Code Download'
-dwsim_flowsheet.download_abstract:
-  route_name: dwsim_flowsheet.download_abstract
-  title: 'Code Download'
-  description: 'Code Download'
 dwsim_flowsheet.download_solution:
   route_name: dwsim_flowsheet.download_solution
   title: 'Code Download'
@@ -40,10 +28,6 @@ dwsim_flowsheet.download_experiment:
   description: 'Code Download'
 dwsim_flowsheet.download_lab:
   route_name: dwsim_flowsheet.download_lab
-  title: 'Code Download'
-  description: 'Code Download'
-dwsim_flowsheet.download_full_project:
-  route_name: dwsim_flowsheet.download_full_project
   title: 'Code Download'
   description: 'Code Download'
 dwsim_flowsheet.download_completed_proposals:

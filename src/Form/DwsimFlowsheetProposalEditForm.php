@@ -7,9 +7,12 @@
 
 namespace Drupal\dwsim_flowsheet\Form;
 
+use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\Render\Element;
+use Drupal\Core\Url;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 
 class DwsimFlowsheetProposalEditForm extends FormBase {
 
@@ -23,7 +26,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
   public function buildForm(array $form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     /* get current proposal */
-    $proposal_id = (int) arg(3);
+    $proposal_id = (int) (\Drupal::routeMatch()->getParameter('proposal_id') ?? 0);
     //$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -32,19 +35,18 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     if ($proposal_q) {
       if ($proposal_data = $proposal_q->fetchObject()) {
         /* everything ok */
-      } //$proposal_data = $proposal_q->fetchObject()
+      }
       else {
         \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-        drupal_goto('flowsheeting-project/manage-proposal');
-        return;
+        return new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
       }
-    } //$proposal_q
+    }
     else {
       \Drupal::messenger()->addError(t('Invalid proposal selected. Please try again.'));
-      drupal_goto('flowsheeting-project/manage-proposal');
-      return;
+      return new RedirectResponse(Url::fromRoute('dwsim_flowsheet.proposal_pending_0')->toString());
     }
     $user_data = \Drupal::entityTypeManager()->getStorage('user')->load($proposal_data->uid);
+    $user_email = $user_data ? $user_data->getEmail() : '';
     $form['name_title'] = [
       '#type' => 'select',
       '#title' => t('Title'),
@@ -76,7 +78,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['student_email_id'] = [
       '#type' => 'item',
       '#title' => t('Email'),
-      '#markup' => $user_data->mail,
+      '#markup' => $user_email,
     ];
     $form['contributor_contact_no'] = [
       '#type' => 'textfield',
@@ -85,14 +87,13 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       '#default_value' => $proposal_data->contact_no,
     ];
     $form['month_year_of_degree'] = [
-      '#type' => 'date_popup',
+      '#type' => 'datetime',
       '#title' => t('Month and year of award of degree'),
-      '#date_label_position' => '',
-      '#description' => '',
-      '#default_value' => $proposal_data->month_year_of_degree,
-      '#date_format' => 'M-Y',
-      '#date_increment' => 0,
+      '#required' => TRUE,
+      '#date_date_element' => 'date',
+      '#date_time_element' => 'none',
       '#date_year_range' => '1960:+22',
+      '#default_value' => $this->toMonthYearDateValue($proposal_data->month_year_of_degree),
     ];
     $form['university'] = [
       '#type' => 'textfield',
@@ -120,19 +121,20 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       '#maxlength' => 200,
       '#default_value' => $proposal_data->project_guide_university,
     ];
+    // Always show country select and then toggle dependent fields.
+    $form['country'] = [
+      '#type' => 'select',
+      '#title' => t('Country'),
+      '#options' => [
+        'India' => 'India',
+        'Others' => 'Others',
+      ],
+      '#default_value' => $proposal_data->country === 'India' ? 'India' : 'Others',
+      '#required' => TRUE,
+      '#tree' => TRUE,
+      '#validated' => TRUE,
+    ];
     if ($proposal_data->country == 'India') {
-      $form['country'] = [
-        '#type' => 'select',
-        '#title' => t('Country'),
-        '#options' => [
-          'India' => 'India',
-          'Others' => 'Others',
-        ],
-        '#default_value' => $proposal_data->country,
-        '#required' => TRUE,
-        '#tree' => TRUE,
-        '#validated' => TRUE,
-      ];
       $form['all_state'] = [
         '#type' => 'select',
         '#title' => t('State'),
@@ -266,10 +268,37 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     return $form;
   }
 
+  public function validateForm(array &$form, FormStateInterface $form_state) {
+    // Normalize state/city when country is Others so submit has consistent keys.
+    if ($form_state->getValue('country') === 'Others') {
+      if (!$form_state->getValue('other_country')) {
+        $form_state->setErrorByName('other_country', t('Enter country name'));
+      }
+      if (!$form_state->getValue('other_state')) {
+        $form_state->setErrorByName('other_state', t('Enter state name'));
+      }
+      if (!$form_state->getValue('other_city')) {
+        $form_state->setErrorByName('other_city', t('Enter city name'));
+      }
+      // Map other_* to standard keys used in submit.
+      if ($form_state->getValue('other_state')) {
+        $form_state->setValue('all_state', $form_state->getValue('other_state'));
+      }
+      if ($form_state->getValue('other_city')) {
+        $form_state->setValue('city', $form_state->getValue('other_city'));
+      }
+    }
+
+    $month_year = $form_state->getValue('month_year_of_degree');
+    if (!$month_year instanceof DrupalDateTime) {
+      $form_state->setErrorByName('month_year_of_degree', t('Please select a valid date.'));
+    }
+  }
+
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     /* get current proposal */
-    $proposal_id = (int) arg(3);
+    $proposal_id = (int) (\Drupal::routeMatch()->getParameter('proposal_id') ?? 0);
     // $proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -294,7 +323,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     if ($form_state->getValue(['delete_proposal']) == 1) {
       /* sending email */
       $user_data = \Drupal::entityTypeManager()->getStorage('user')->load($proposal_data->uid);
-      $email_to = $user_data->mail;
+      $email_to = $user_data ? $user_data->getEmail() : '';
       $from = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_from_email');
       $bcc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_emails');
       $cc = \Drupal::config('dwsim_flowsheet.settings')->get('dwsim_flowsheet_cc_emails');
@@ -310,7 +339,17 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
         'Cc' => $cc,
         'Bcc' => $bcc,
       ];
-      if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_deleted', $email_to, user_preferred_language($user), $params, $from, TRUE)) {
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+        'dwsim_flowsheet',
+        'dwsim_flowsheet_proposal_deleted',
+        $email_to,
+        $langcode,
+        $params,
+        $from,
+        TRUE
+      );
+      if (empty($mail_result['result'])) {
         \Drupal::messenger()->addError('Error sending email message.');
       }
       \Drupal::messenger()->addStatus(t('DWSIM Flowsheeting proposal has been deleted.'));
@@ -323,7 +362,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
           ":proposal_id" => $proposal_id
           ]);
         \Drupal::messenger()->addStatus(t('Proposal Deleted'));
-        drupal_goto('flowsheeting-project/manage-proposal');
+        $form_state->setRedirect('dwsim_flowsheet.proposal_pending_0');
         return;
       } //rrmdir_project($proposal_id) == TRUE
     } //$form_state['values']['delete_proposal'] == 1
@@ -371,14 +410,84 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       ':project_guide_university' => $v['project_guide_university'],
       ':project_guide_email_id' => $v['project_guide_email_id'],
       ':project_guide_name' => $v['project_guide_name'],
-      ':month_year_of_degree' => $v['month_year_of_degree'],
+      ':month_year_of_degree' => $this->normalizeMonthYearForStorage($v['month_year_of_degree']) ?? trim((string) $v['month_year_of_degree']),
       ':process_development_compound_name' => $v['process_development_compound_name'],
       ':process_development_compound_cas_number' => $v['process_development_compound_cas_no'],
       ':proposal_id' => $proposal_id,
     ];
     $result = \Drupal::database()->query($query, $args);
     \Drupal::messenger()->addStatus(t('Proposal Updated'));
+    $form_state->setRedirect('dwsim_flowsheet.proposal_pending_0');
   }
 
+  private function toMonthYearDateValue($value) {
+    $value = trim((string) $value);
+    if ($value === '') {
+      return NULL;
+    }
+
+    foreach (['!M-Y', '!F-Y', '!Y-m', '!Y-m-d'] as $format) {
+      $date = \DateTimeImmutable::createFromFormat($format, $value);
+      $errors = \DateTimeImmutable::getLastErrors();
+      $has_errors = is_array($errors) && (!empty($errors['warning_count']) || !empty($errors['error_count']));
+      if (!$date || $has_errors) {
+        continue;
+      }
+
+      if ($format === '!M-Y' && strcasecmp($date->format('M-Y'), $value) !== 0) {
+        continue;
+      }
+      if ($format === '!F-Y' && strcasecmp($date->format('F-Y'), $value) !== 0) {
+        continue;
+      }
+      if ($format === '!Y-m' && $date->format('Y-m') !== $value) {
+        continue;
+      }
+      if ($format === '!Y-m-d' && $date->format('Y-m-d') !== $value) {
+        continue;
+      }
+
+      return new DrupalDateTime($date->format('Y-m-d'));
+    }
+
+    return NULL;
+  }
+
+  private function normalizeMonthYearForStorage($value) {
+    if ($value instanceof DrupalDateTime) {
+      return $value->format('Y-m');
+    }
+
+    $value = trim((string) $value);
+    if ($value === '') {
+      return NULL;
+    }
+
+    foreach (['!M-Y', '!F-Y', '!Y-m', '!Y-m-d'] as $format) {
+      $date = \DateTimeImmutable::createFromFormat($format, $value);
+      $errors = \DateTimeImmutable::getLastErrors();
+      $has_errors = is_array($errors) && (!empty($errors['warning_count']) || !empty($errors['error_count']));
+      if (!$date || $has_errors) {
+        continue;
+      }
+
+      if ($format === '!M-Y' && strcasecmp($date->format('M-Y'), $value) !== 0) {
+        continue;
+      }
+      if ($format === '!F-Y' && strcasecmp($date->format('F-Y'), $value) !== 0) {
+        continue;
+      }
+      if ($format === '!Y-m' && $date->format('Y-m') !== $value) {
+        continue;
+      }
+      if ($format === '!Y-m-d' && $date->format('Y-m-d') !== $value) {
+        continue;
+      }
+
+      return $date->format('Y-m');
+    }
+
+    return NULL;
+  }
 }
 ?>

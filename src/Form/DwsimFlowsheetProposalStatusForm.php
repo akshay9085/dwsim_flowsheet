@@ -30,7 +30,7 @@ class DwsimFlowsheetProposalStatusForm extends FormBase {
     $user = \Drupal::currentUser();
     /* get current proposal */
     // $proposal_id = (int) arg(3);
-    $proposal_id  = (int) \Drupal::routeMatch('dwsim_flowsheet.proposal_status_form')->getParameter('id');
+    $proposal_id  = (int) \Drupal::routeMatch()->getParameter('id');
     //$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
     $query->fields('dwsim_flowsheet_proposal');
@@ -175,12 +175,13 @@ $form['contributor_name'] = [
         $proposal_status = t('Unkown');
         break;
     } //$proposal_data->approval_status
-    if (_dwsim_flowsheet_list_of_user_defined_compound($proposal_data->id) != "Not entered") {
+    $user_defined_compound_table = _dwsim_flowsheet_list_of_user_defined_compound($proposal_data->id);
+    if (is_array($user_defined_compound_table)) {
       $form['user_defined_compounds_used_in_process_flowsheetcompound_name'] = [
-        '#type' => 'ifieldset',
+        '#type' => 'fieldset',
         '#title' => t('List of user defined compounds used in process flowsheet'),
-        '#markup' => _dwsim_flowsheet_list_of_user_defined_compound($proposal_data->id),
       ];
+      $form['user_defined_compounds_used_in_process_flowsheetcompound_name']['table'] = $user_defined_compound_table;
     } //$proposal_data->user_defined_compounds_used_in_process != "" || $proposal_data->user_defined_compounds_used_in_process != NULL
     else {
       $form['user_defined_compounds_used_in_process_flowsheetcompound_name'] = [
@@ -203,7 +204,7 @@ $form['user_defined_compound_filepath'] = [
   '#title' => t('Uploaded the user-defined compound'),
   '#markup' => Link::fromTextAndUrl(
       t('Download user-defined compound list'),
-      Url::fromRoute('dwsim_flowsheet.download_user_defined_compound' . $proposal_id)
+      Url::fromRoute('dwsim_flowsheet.download_user_defined_compound', ['proposal_id' => $proposal_id])
   )->toString() . '<br><br>',
 ];
     } //$proposal_data->user_defined_compound_filepath != ""
@@ -239,7 +240,7 @@ $form['user_defined_compound_filepath'] = [
     if ($proposal_data->approval_status == 2) {
       $form['message'] = [
         '#type' => 'item',
-        '#markup' => $proposal_data->message,
+        '#markup' => $proposal_data->dissapproval_reason,
         '#title' => t('Reason for disapproval'),
       ];
     } //$proposal_data->approval_status == 2
@@ -266,7 +267,7 @@ $form['cancel'] = [
   public function submitForm(array &$form, \Drupal\Core\Form\FormStateInterface $form_state) {
     $user = \Drupal::currentUser();
     /* get current proposal */
-    $proposal_id  = (int) \Drupal::routeMatch('dwsim_flowsheet.proposal_status_form')->getParameter('id');
+    $proposal_id  = (int) \Drupal::routeMatch()->getParameter('id');
     // $proposal_id = (int) arg(3);
     //$proposal_q = db_query("SELECT * FROM {dwsim_flowsheet_proposal} WHERE id = %d", $proposal_id);
     $query = \Drupal::database()->select('dwsim_flowsheet_proposal');
@@ -325,9 +326,19 @@ $form['cancel'] = [
         'Cc' => $cc,
         'Bcc' => $bcc,
       ];
-      // if (!drupal_mail('dwsim_flowsheet', 'dwsim_flowsheet_proposal_completed', $email_to, language_default(), $params, $from, TRUE)) {
-      //   \Drupal::messenger()->addError('Error sending email message.');
-      // }
+      $langcode = \Drupal::languageManager()->getCurrentLanguage()->getId();
+      $mail_result = \Drupal::service('plugin.manager.mail')->mail(
+        'dwsim_flowsheet',
+        'dwsim_flowsheet_proposal_completed',
+        $email_to,
+        $langcode,
+        $params,
+        $from,
+        TRUE
+      );
+      if (empty($mail_result['result'])) {
+        \Drupal::messenger()->addError('Error sending email message.');
+      }
       \Drupal::messenger()->addStatus('Congratulations! DWSIM flowsheeting proposal has been marked as completed. User has been notified of the completion.');
     } //$form_state['values']['completed'] == 1
     // drupal_goto('flowsheeting-project/manage-proposal');
