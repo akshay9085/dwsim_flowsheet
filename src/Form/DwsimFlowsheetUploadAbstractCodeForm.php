@@ -75,7 +75,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
           '#options' => _df_list_of_unit_operations(),
           '#required' => TRUE,
           '#default_value' => $existing_unit_operations_used_in_dwsim,
-          '#size' => '20',
+          // '#size' => '20',
           '#multiple' => TRUE,
           '#description' => t('[You can select multiple options by holding ctrl + left key of mouse]'),
         ];
@@ -87,7 +87,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
         '#title' => t('Unit Operations used in DWSIM'),
         '#options' => _df_list_of_unit_operations(),
         '#required' => TRUE,
-        '#size' => '20',
+        // '#size' => '20',
         '#multiple' => TRUE,
         '#description' => t('[You can select multiple options by holding ctrl + left key of mouse]'),
       ];
@@ -100,7 +100,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
           '#title' => t('Thermodynamic Packages Used'),
           '#options' => _df_list_of_thermodynamic_packages(),
           '#required' => TRUE,
-          '#size' => '20',
+          // '#size' => '20',
           '#default_value' => $existing_thermodynamic_packages_used,
           '#multiple' => TRUE,
           '#description' => t('[You can select multiple options by holding ctrl + left key of mouse]'),
@@ -113,7 +113,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
         '#title' => t('Thermodynamic Packages Used'),
         '#options' => _df_list_of_thermodynamic_packages(),
         '#required' => TRUE,
-        '#size' => '20',
+        // '#size' => '20',
         '#multiple' => TRUE,
         '#description' => t('[You can select multiple options by holding ctrl + left key of mouse]'),
       ];
@@ -192,7 +192,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
         '#title' => t('List of compounds from DWSIM Database used in process flowsheet'),
         '#options' => _df_list_of_dwsim_compound(),
         '#default_value' => $existing_dwsim_database_compound_name,
-        '#size' => '20',
+        // '#size' => '20',
         '#multiple' => TRUE,
         '#description' => t('[You can select multiple options by holding ctrl + left key of mouse]'),
       ];
@@ -202,7 +202,7 @@ class DwsimFlowsheetUploadAbstractCodeForm extends FormBase {
         '#type' => 'select',
         '#title' => t('List of compounds from DWSIM Database used in process flowsheet'),
         '#options' => _df_list_of_dwsim_compound(),
-        '#size' => '20',
+        // '#size' => '20',
         '#multiple' => TRUE,
       ];
     }

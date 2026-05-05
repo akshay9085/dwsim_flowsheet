@@ -63,7 +63,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['contributor_name'] = [
       '#type' => 'textfield',
       '#title' => t('Name of the Proposer'),
-      '#size' => 30,
+      // '#size' => 30,
       '#maxlength' => 250,
       '#required' => TRUE,
       '#default_value' => $proposal_data->contributor_name,
@@ -83,7 +83,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['contributor_contact_no'] = [
       '#type' => 'textfield',
       '#title' => t('Contact No.'),
-      '#size' => 10,
+      // '#size' => 10,
       '#default_value' => $proposal_data->contact_no,
     ];
     $form['month_year_of_degree'] = [
@@ -98,26 +98,26 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['university'] = [
       '#type' => 'textfield',
       '#title' => t('University/Institute'),
-      '#size' => 80,
+      // '#size' => 80,
       '#maxlength' => 200,
       '#default_value' => $proposal_data->university,
     ];
     $form['project_guide_name'] = [
       '#type' => 'textfield',
       '#title' => t('Project guide'),
-      '#size' => 250,
+      // '#size' => 250,
       '#default_value' => $proposal_data->project_guide_name,
     ];
     $form['project_guide_email_id'] = [
       '#type' => 'textfield',
       '#title' => t('Project guide email'),
-      '#size' => 30,
+      // '#size' => 30,
       '#default_value' => $proposal_data->project_guide_email_id,
     ];
     $form['project_guide_university'] = [
       '#type' => 'textfield',
       '#title' => t('Project Guide University/ Institute'),
-      '#size' => 80,
+      // '#size' => 80,
       '#maxlength' => 200,
       '#default_value' => $proposal_data->project_guide_university,
     ];
@@ -167,7 +167,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       $form['other_country'] = [
         '#type' => 'textfield',
         '#title' => t('Country(Other than India)'),
-        '#size' => 100,
+        // '#size' => 100,
         '#default_value' => $proposal_data->country,
         '#attributes' => [
           'placeholder' => t('Enter your country name')
@@ -183,7 +183,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       $form['other_state'] = [
         '#type' => 'textfield',
         '#title' => t('State(Other than India)'),
-        '#size' => 100,
+        // '#size' => 100,
         '#attributes' => [
           'placeholder' => t('Enter your state/region name')
           ],
@@ -199,7 +199,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
       $form['other_city'] = [
         '#type' => 'textfield',
         '#title' => t('City(Other than India)'),
-        '#size' => 100,
+        // '#size' => 100,
         '#attributes' => [
           'placeholder' => t('Enter your city name')
           ],
@@ -216,7 +216,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['pincode'] = [
       '#type' => 'textfield',
       '#title' => t('Pincode'),
-      '#size' => 30,
+      // '#size' => 30,
       '#maxlength' => 6,
       '#default_value' => $proposal_data->pincode,
       '#attributes' => [
@@ -226,7 +226,7 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['project_title'] = [
       '#type' => 'textarea',
       '#title' => t('Title of the Flowsheet Project'),
-      '#size' => 300,
+      // '#size' => 300,
       '#maxlength' => 350,
       '#required' => TRUE,
       '#default_value' => $proposal_data->project_title,
@@ -234,20 +234,20 @@ class DwsimFlowsheetProposalEditForm extends FormBase {
     $form['reference'] = [
       '#type' => 'textarea',
       '#title' => t('Reference of the Flowsheet Project'),
-      '#size' => 300,
+      // '#size' => 300,
       '#maxlength' => 350,
       '#default_value' => $proposal_data->reference,
     ];
     $form['process_development_compound_name'] = [
       '#type' => 'textfield',
       '#title' => t('Name of compound for which process development is carried out'),
-      '#size' => 50,
+      // '#size' => 50,
       '#default_value' => $proposal_data->process_development_compound_name,
     ];
     $form['process_development_compound_cas_no'] = [
       '#type' => 'textfield',
       '#title' => t('CAS number for compound which process development is carried out'),
-      '#size' => 50,
+      // '#size' => 50,
       '#default_value' => $proposal_data->process_development_compound_cas_number,
     ];
     $form['delete_proposal'] = [

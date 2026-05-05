@@ -932,7 +932,7 @@ public function dwsim_flowsheet_completed_proposals_all() {
         $i = count($records);
         foreach ($records as $row) {
             $completion_date = date("d-M-Y", $row->actual_completion_date);
-            $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form'))->toString();
+            $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form', ['id' => $row->id]))->toString();
             $preference_rows[] = [
                 $i,
                 ['data' => $project_url, 'escape' => FALSE], // Escape FALSE to allow HTML links.

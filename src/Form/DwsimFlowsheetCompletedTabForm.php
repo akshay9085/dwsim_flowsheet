@@ -154,7 +154,7 @@ WHERE `approval_status` = 3
       foreach ($records as $row) {
        
           $completion_date = date("d-M-Y", $row->actual_completion_date);
-          $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form'))->toString();
+          $project_url = Link::fromTextAndUrl($row->project_title, Url::fromRoute('dwsim_flowsheet.run_form', ['id' => $row->id]))->toString();
          
          
           $preference_rows[$row->id] = [

@@ -89,7 +89,7 @@ class DwsimFlowsheetProposalApprovalForm extends FormBase {
           $proposal_data->name_title . ' ' . $proposal_data->contributor_name,
           Url::fromUserInput('/user/' . $proposal_data->uid)
         )->toString(),
-    		'#size' => 250,
+    		// '#size' => 250,
     		'#title' => 'Student name'
     	);
 
